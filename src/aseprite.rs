@@ -16,6 +16,7 @@ pub struct AsePlayer {
     data: AsepriteData,
     current_tag_index: usize,
     current_frame_index: usize,
+    current_frame_index_old: usize,
     timer: Instant,
     is_finished: bool,
 }
@@ -36,6 +37,7 @@ impl AsePlayer {
             data,
             current_tag_index,
             current_frame_index: 0,
+            current_frame_index_old: 0,
             timer: Instant::now(),
             is_finished: false,
         }
@@ -57,6 +59,9 @@ impl AsePlayer {
     }
 
     fn play(&mut self, looping: bool) {
+        self.is_finished = false;
+        self.current_frame_index_old = self.current_frame_index;
+
         let (i_min, i_max) = (self.current_tag().from, self.current_tag().to);
 
         if !(i_min..=i_max).contains(&self.current_frame_index) {
@@ -68,7 +73,6 @@ impl AsePlayer {
         if Instant::now() >= self.timer + duration {
             self.timer = Instant::now();
             self.current_frame_index += 1;
-            self.is_finished = false;
             if self.current_frame_index > i_max {
                 self.is_finished = true;
                 if looping {
@@ -78,6 +82,10 @@ impl AsePlayer {
                 }
             }
         }
+    }
+
+    pub fn just_frame_index(&self, index: usize) -> bool {
+        self.current_frame_index == index && self.current_frame_index_old != index
     }
 
     pub fn current_frame_rect(&self) -> Rect {

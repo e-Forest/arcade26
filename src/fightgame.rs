@@ -11,7 +11,7 @@ use crate::{
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, rect_shifted},
-    player::{PlayerMessage, Skill},
+    player::{PlayerMessage, PlayerState, Skill},
 };
 
 pub struct FightGame {
@@ -56,11 +56,13 @@ impl FightGame {
     pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
         // - Update Players -
         for (gamepad_id, player) in self.players.iter_mut().enumerate() {
-            let msg = player.update(input, gamepad_id);
+            let player_messages = player.update(input, gamepad_id);
             fix_player_position(player, self.ground_boxes.as_slice());
-            match msg {
-                PlayerMessage::ShootArrow(arrow) => self.arrows.push(arrow),
-                PlayerMessage::None => (),
+            for msg in player_messages {
+                match msg {
+                    PlayerMessage::ShootArrow(arrow) => self.arrows.push(arrow),
+                    PlayerMessage::None => (),
+                }
             }
         }
 
@@ -85,7 +87,7 @@ impl FightGame {
                 if player.team == arrow.team {
                     continue;
                 }
-                if player.is_dashing() || player.is_stunning() {
+                if player.state == PlayerState::Dash || player.state == PlayerState::Stunned {
                     continue;
                 }
                 if rect_shifted(player.colision_box, player.pos.as_point())
@@ -101,7 +103,7 @@ impl FightGame {
         }
         for (player_idx, stunning_direction) in player_stunnings {
             if let Some(player) = self.players.get_mut(player_idx) {
-                player.stunning_end_time = Instant::now() + Duration::from_millis(STUNNING_TIME);
+                player.stunned_end_time = Instant::now() + Duration::from_millis(STUNNING_TIME);
                 player.stunning_direction = stunning_direction;
             }
         }
@@ -118,7 +120,8 @@ impl FightGame {
                 player.last_ground = Some(ground_at_current_pos);
             }
 
-            if player.is_dashing() {
+            // if player.is_dashing() {
+            if player.state == PlayerState::Dash {
                 is_player_groundet = true;
                 player.last_ground = None;
             }
@@ -132,7 +135,7 @@ impl FightGame {
             if let Some(player) = self.players.get_mut(player_idx) {
                 self.platsches.push(Platsch::new(player.pos));
                 player.pos = player.start_pos;
-                player.stunning_end_time = Instant::now() + Duration::from_millis(1000);
+                player.stunned_end_time = Instant::now() + Duration::from_millis(1000);
                 player.stunning_direction = Vec2::zero();
             }
         }
@@ -154,16 +157,16 @@ impl FightGame {
             platsch.draw(canvas, textures);
         }
         if DEBUGMODE {
-            canvas.set_draw_color(Color::WHITE);
-            for r in &self.ground_boxes {
-                canvas.draw_rect(*r).unwrap();
-            }
+            // canvas.set_draw_color(Color::WHITE);
+            // for r in &self.ground_boxes {
+            //     canvas.draw_rect(*r).unwrap();
+            // }
         }
     }
 }
 
 fn fix_player_position(player: &mut Player, ground_boxes: &[Rect]) {
-    if player.is_stunning() || player.is_dashing() {
+    if player.state == PlayerState::Stunned || player.state == PlayerState::Dash {
         return;
     }
     let new_position = player.pos.as_point();

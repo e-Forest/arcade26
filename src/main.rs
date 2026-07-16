@@ -51,8 +51,8 @@ pub const ARROW_SPAWN_DISTANCE: f32 = 10.;
 pub const STUNNING_TIME: u64 = 300;
 pub const STUNNING_SPEED: f32 = 1.;
 
-pub const DASH_TIME: u64 = 200;
-pub const DASH_SPEED: f32 = 3.;
+pub const DASH_TIME: u64 = 350;
+pub const DASH_SPEED: f32 = 1.8;
 
 pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
@@ -109,9 +109,9 @@ pub fn main() {
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
     let mut current_scene = Scene::FightGame(FightGame::new(vec![
         Team::Blue,
-        Team::Blue,
-        Team::Red,
-        Team::Red,
+        // Team::Blue,
+        // Team::Red,
+        // Team::Red,
     ]));
 
     let mut fps_guard = FpsGuard::new(60);

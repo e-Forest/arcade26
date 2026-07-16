@@ -29,7 +29,7 @@ pub struct Player {
     pub speed: f32,
     pub is_aiming: bool,
     pub aim_direction: Vec2,
-    pub stunning_end_time: Instant,
+    pub stunned_end_time: Instant,
     pub stunning_direction: Vec2,
     pub dash_end_time: Instant,
     pub dash_direction: Vec2,
@@ -54,7 +54,7 @@ impl Player {
             speed: 1.0,
             is_aiming: false,
             aim_direction: Vec2::zero(),
-            stunning_end_time: Instant::now(),
+            stunned_end_time: Instant::now(),
             stunning_direction: Vec2::zero(),
             dash_end_time: Instant::now(),
             dash_direction: Vec2::zero(),
@@ -64,7 +64,8 @@ impl Player {
         };
         player
     }
-    pub fn update(&mut self, input: &ArcadeInput, gamepad_id: usize) -> PlayerMessage {
+    pub fn update(&mut self, input: &ArcadeInput, gamepad_id: usize) -> Vec<PlayerMessage> {
+        let mut out = Vec::new();
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
         let vertical_movement = -input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickY);
         let input_move_direction = Vec2::new(horizontal_movement, vertical_movement).normalized();
@@ -76,73 +77,122 @@ impl Player {
             .velo
             .lerp(input_move_direction * self.speed, self.acceleration);
 
-        // - Schießen -
-        self.aim_direction = Vec2::new(horizontal_aiming, vertical_aiming).normalized();
-        self.is_aiming = self.aim_direction != Vec2::zero()
-            && self.is_stunning() == false
-            && self.is_dashing() == false;
+        let aiming_input = Vec2::new(horizontal_aiming, vertical_aiming).normalized();
+        self.is_aiming = aiming_input != Vec2::zero();
+        if self.is_aiming {
+            self.aim_direction = aiming_input;
+        }
 
-        if self.is_aiming == true {
-            if self.stamina >= 1. {
-                // next: funktioniert nicht richtig - ich denke ich brauche eine statemachine...
-                if self.ase_player.is_finished() {
+        match self.state {
+            PlayerState::Idle => {
+                self.ase_player.play_tag("idle", true);
+
+                // Stamina
+                self.stamina_reload(1.);
+
+                // -> Move
+                if self.velo.length() > INPUT_AXIS_THRESHOLD {
+                    self.state = PlayerState::Move;
+                }
+
+                // -> Shoot
+                if self.is_aiming == true && self.stamina >= 1. {
+                    self.state = PlayerState::Shoot;
+                }
+            }
+            PlayerState::Move => {
+                self.ase_player.play_tag("move", true);
+
+                // Stamina
+                self.stamina_reload(0.6);
+
+                // Flip
+                if self.velo.x > INPUT_AXIS_THRESHOLD {
+                    self.fliped = false;
+                } else if self.velo.x < -INPUT_AXIS_THRESHOLD {
+                    self.fliped = true;
+                }
+
+                // Velo
+                self.pos_old = self.pos;
+                self.pos = self.pos + self.velo;
+
+                // -> Dash
+                if input.just_button_pressed(PlayerId(gamepad_id), Button::South) {
+                    if self.stamina >= 1. {
+                        self.stamina -= 1.;
+                        self.dash_direction = input_move_direction.normalized();
+                        self.dash_end_time = Instant::now() + Duration::from_millis(DASH_TIME);
+                        self.state = PlayerState::Dash;
+                    }
+                }
+
+                // -> Shoot
+                if self.is_aiming == true && self.stamina >= 1. {
+                    self.state = PlayerState::Shoot;
+                }
+
+                // -> Idle
+                if self.velo.length() < INPUT_AXIS_THRESHOLD {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            PlayerState::Shoot => {
+                self.ase_player.play_tag("shoot", true);
+
+                // Flip
+                if self.aim_direction.x > 0. {
+                    self.fliped = false;
+                } else if self.aim_direction.x < 0. {
+                    self.fliped = true;
+                }
+
+                // Arrow spawn
+                if self.ase_player.just_frame_index(14) {
                     self.stamina -= 1.;
                     let arrow = Arrow::new(
                         self.pos + self.aim_direction * ARROW_SPAWN_DISTANCE,
                         self.aim_direction,
                         self.team,
                     );
+                    out.push(PlayerMessage::ShootArrow(arrow));
+                }
 
-                    return PlayerMessage::ShootArrow(arrow);
+                // -> Idle
+                if self.ase_player.is_finished() {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            PlayerState::Dash => {
+                self.ase_player.play_tag("dash", true);
+
+                // Velo
+                self.pos = self.pos + self.dash_direction.normalized() * DASH_SPEED;
+
+                // -> Idle
+                if self.dash_end_time < Instant::now() {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            PlayerState::Stunned => {
+                self.ase_player.play_tag("stunned", true);
+
+                // Velo
+                self.pos = self.pos + self.stunning_direction.normalized() * STUNNING_SPEED;
+
+                // -> Idle
+                if self.stunned_end_time < Instant::now() {
+                    self.state = PlayerState::Idle;
                 }
             }
         }
 
-        // - Dashen -
-        if input.just_button_pressed(PlayerId(gamepad_id), Button::South) {
-            if self.stamina >= 1. {
-                self.stamina -= 1.;
-                self.dash_direction = input_move_direction.normalized();
-                self.dash_end_time = Instant::now() + Duration::from_millis(DASH_TIME);
-            }
-        }
+        out
+    }
 
-        // - Stamina aufladen -
-        self.stamina += STAMINA_RELOAD_PER_FRAME;
+    fn stamina_reload(&mut self, relaxation_factor: f32) {
+        self.stamina += STAMINA_RELOAD_PER_FRAME * relaxation_factor;
         self.stamina = self.stamina.clamp(0., 3.);
-
-        // - Animation -
-        let ase_player = &mut self.ase_player;
-
-        if self.stunning_end_time > Instant::now() {
-            ase_player.play_tag("stunning", true);
-        } else if self.dash_end_time > Instant::now() {
-            ase_player.play_tag("dashing", true);
-        } else if self.is_aiming {
-            ase_player.play_tag("shoot", true);
-        } else if self.velo.length() > INPUT_AXIS_THRESHOLD {
-            ase_player.play_tag("run", true);
-        } else {
-            ase_player.play_tag("idle", true);
-        }
-
-        if self.velo.x > INPUT_AXIS_THRESHOLD {
-            self.fliped = false;
-        } else if self.velo.x < -INPUT_AXIS_THRESHOLD {
-            self.fliped = true;
-        }
-
-        // - Velocity anwenden -
-        self.pos_old = self.pos;
-        if self.is_stunning() == true {
-            self.pos = self.pos + self.stunning_direction.normalized() * STUNNING_SPEED;
-        } else if self.is_dashing() == true {
-            self.pos = self.pos + self.dash_direction.normalized() * DASH_SPEED;
-        } else {
-            self.pos = self.pos + self.velo;
-        }
-
-        PlayerMessage::None
     }
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
@@ -172,18 +222,12 @@ impl Player {
             for i in 0..self.stamina as i32 {
                 canvas
                     .draw_point(Point::new(
-                        self.pos.x as i32 + i * 2,
-                        self.pos.y as i32 - 16,
+                        -2 + self.pos.x as i32 + i * 2,
+                        self.pos.y as i32 - 18,
                     ))
                     .unwrap();
             }
         }
-    }
-    pub fn is_stunning(&self) -> bool {
-        self.stunning_end_time > Instant::now()
-    }
-    pub fn is_dashing(&self) -> bool {
-        self.dash_end_time > Instant::now()
     }
 }
 
@@ -208,4 +252,5 @@ pub enum PlayerState {
     Move,
     Shoot,
     Dash,
+    Stunned,
 }

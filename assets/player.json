@@ -216,11 +216,11 @@
   "scale": "1",
   "frameTags": [
    { "name": "idle", "from": 0, "to": 1, "direction": "forward", "color": "#000000ff" },
-   { "name": "run", "from": 2, "to": 9, "direction": "forward", "color": "#000000ff" },
+   { "name": "move", "from": 2, "to": 9, "direction": "forward", "color": "#000000ff" },
    { "name": "jump", "from": 10, "to": 11, "direction": "forward", "color": "#000000ff" },
    { "name": "shoot", "from": 12, "to": 14, "direction": "forward", "color": "#000000ff" },
-   { "name": "dashing", "from": 15, "to": 18, "direction": "forward", "color": "#000000ff" },
-   { "name": "stunning", "from": 19, "to": 22, "direction": "forward", "color": "#000000ff" }
+   { "name": "dash", "from": 15, "to": 18, "direction": "forward", "color": "#000000ff" },
+   { "name": "stunned", "from": 19, "to": 22, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "body", "opacity": 255, "blendMode": "normal" },
