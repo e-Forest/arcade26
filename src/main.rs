@@ -39,7 +39,7 @@ use time::*;
 pub mod player;
 use player::*;
 
-pub const DEBUGMODE: bool = true;
+pub const DEBUGMODE: bool = false;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
 pub const VIRTUAL_HEIGHT: u32 = 180; // 1080/6
@@ -49,13 +49,19 @@ pub const ARROW_SPEED: f32 = 3.;
 pub const ARROW_SPAWN_DISTANCE: f32 = 10.;
 
 pub const STUNNING_TIME: u64 = 300;
-pub const STUNNING_SPEED: f32 = 1.;
+pub const STUNNING_SPEED_ARROW_HIT: f32 = 1.;
+pub const STUNNING_SPEED_DASH_HIT: f32 = 1.6;
 
 pub const DASH_TIME: u64 = 350;
 pub const DASH_SPEED: f32 = 1.8;
+pub const DASH_GETS_DANGEROUS_TIME: u64 = 150;
 
 pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
+
+pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
+pub const INTRO_TIME_MS: u32 = 3000;
+pub const OUTRO_TIME_MS: u32 = 5000;
 
 /*
 #5
@@ -109,9 +115,9 @@ pub fn main() {
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
     let mut current_scene = Scene::FightGame(FightGame::new(vec![
         Team::Blue,
-        // Team::Blue,
-        // Team::Red,
-        // Team::Red,
+        Team::Blue,
+        Team::Red,
+        Team::Red,
     ]));
 
     let mut fps_guard = FpsGuard::new(60);
@@ -148,7 +154,7 @@ pub fn main() {
                         jump_game.draw(&mut tcnv, &textures);
                     }
                     Scene::FightGame(fight_game) => {
-                        scene_msg = fight_game.update(&input);
+                        scene_msg = fight_game.update(&input, fps_guard.delta_ms());
                         fight_game.draw(&mut tcnv, &textures);
                     }
                 };
@@ -321,4 +327,11 @@ impl<'a> Textures<'a> {
 pub enum Team {
     Blue,
     Red,
+}
+
+pub enum GameState {
+    Intro,
+    InGame,
+    NextRound,
+    Outro,
 }

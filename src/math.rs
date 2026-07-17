@@ -81,6 +81,10 @@ impl Vec2 {
     }
 }
 
+pub fn middle_direction(v1: Vec2, v2: Vec2) -> Vec2 {
+    v1.add(v2).normalized()
+}
+
 impl Add for Vec2 {
     type Output = Self;
     fn add(self, other: Self) -> Self {

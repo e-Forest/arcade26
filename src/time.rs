@@ -6,67 +6,98 @@ use std::{
 use sdl3::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 pub struct Timer {
-    current: Instant,
-    duration: Duration,
+    start: Instant,
+    end: Instant,
 }
 
 impl Timer {
     pub fn new(duration_ms: u32) -> Self {
+        let now = Instant::now();
         Self {
-            current: Instant::now(),
-            duration: Duration::from_millis(duration_ms as u64),
+            start: now,
+            end: now + Duration::from_millis(duration_ms as u64),
         }
     }
     pub fn restart(&mut self) {
-        self.current = Instant::now()
+        let wait_time = self.wait_time();
+        self.start = Instant::now();
+        self.end = self.start + wait_time;
     }
     pub fn is_over(&self) -> bool {
-        Instant::now().saturating_duration_since(self.current) > self.duration
+        Instant::now() >= self.end
+    }
+
+    pub fn wait_time(&self) -> Duration {
+        self.end - self.start
+    }
+    pub fn remaning_time(&self) -> Duration {
+        self.end.saturating_duration_since(Instant::now())
+    }
+    pub fn draw(
+        &self,
+        canvas: &mut WindowCanvas,
+        rect: Rect,
+        back_color: Color,
+        fore_color: Color,
+    ) {
+        let remaining_time_percent =
+            1. / self.wait_time().as_millis() as f32 * self.remaning_time().as_millis() as f32;
+        let width = rect.width() as f32 * remaining_time_percent;
+        let inner_rect = Rect::new(rect.x, rect.y, width as u32, rect.height());
+        canvas.set_draw_color(back_color);
+        canvas.fill_rect(rect).unwrap();
+        canvas.set_draw_color(fore_color);
+        canvas.fill_rect(inner_rect).unwrap();
     }
 }
 
 pub struct FpsGuard {
     frame_start_time: Instant,
-    frame_duration: Duration,
-    frame_duration_target: Duration,
+    code_time: Duration,
+    frame_budget: Duration,
     wait_time: Duration,
     exceeded_time: Option<Instant>,
+    delta_time: Duration,
 }
 
 impl FpsGuard {
     pub fn new(fps: u32) -> Self {
         let frame_start_time = Instant::now();
-        let frame_duration = Duration::default();
-        let frame_duration_target = Duration::from_millis(1000 / fps as u64);
+        let code_time = Duration::default();
+        let frame_budget = Duration::from_millis(1000 / fps as u64);
 
         Self {
             frame_start_time,
-            frame_duration,
-            frame_duration_target,
-            wait_time: frame_duration_target,
+            code_time,
+            frame_budget,
+            wait_time: frame_budget,
             exceeded_time: None,
+            delta_time: Duration::default(),
         }
     }
     pub fn start_frame(&mut self) {
         self.frame_start_time = Instant::now()
     }
     pub fn end_frame(&mut self) {
-        self.frame_duration = self.frame_start_time.elapsed();
-        self.wait_time = self
-            .frame_duration_target
-            .saturating_sub(self.frame_duration);
-        if self.frame_duration > self.frame_duration_target {
+        self.code_time = self.frame_start_time.elapsed();
+        self.wait_time = self.frame_budget.saturating_sub(self.code_time);
+        if self.code_time > self.frame_budget {
             self.exceeded_time = Some(Instant::now());
         }
         sleep(self.wait_time);
+        self.delta_time = self.frame_start_time.elapsed();
+    }
+
+    pub fn delta_ms(&self) -> u32 {
+        self.delta_time.as_millis() as u32
     }
 
     pub fn draw(&self, cnv: &mut WindowCanvas, x: i32, y: i32) {
         const WIDTH: u32 = 20;
         const HEIGHT: u32 = 3;
 
-        let occupancy_rate_in_percent = 1. / self.frame_duration_target.as_millis() as f32
-            * self.frame_duration.as_millis() as f32;
+        let occupancy_rate_in_percent =
+            1. / self.frame_budget.as_millis() as f32 * self.code_time.as_millis() as f32;
 
         cnv.set_draw_color(Color::WHITE);
         cnv.fill_rect(Rect::new(x, y, WIDTH, HEIGHT)).unwrap();
@@ -96,7 +127,5 @@ impl FpsGuard {
             cnv.set_draw_color(Color::GREEN);
         }
         cnv.draw_rect(Rect::new(x, y, WIDTH, HEIGHT)).unwrap();
-        // cnv.draw_rect(Rect::new(x + 1, y + 1, WIDTH - 2, HEIGHT - 2))
-        //     .unwrap();
     }
 }
