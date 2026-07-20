@@ -328,12 +328,16 @@ pub struct Textures<'a> {
     pub arrow: Texture<'a>,
     pub platsch: Texture<'a>,
     pub fightgame_rules: Texture<'a>,
+    pub outro_teams_red: Texture<'a>,
+    pub outro_teams_blue: Texture<'a>,
 }
 
 impl<'a> Textures<'a> {
     fn new(creator: &'a TextureCreator<WindowContext>) -> Self {
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            outro_teams_red: creator.load_texture("assets/outro_teams_red.png").unwrap(),
+            outro_teams_blue: creator.load_texture("assets/outro_teams_blue.png").unwrap(),
             player: creator.load_texture("assets/player.png").unwrap(),
             overworld_background: creator
                 .load_texture("assets/overworld_background.png")
@@ -383,7 +387,7 @@ impl Particle {
     pub fn new(pos: Vec2, color: Color, velo: Vec2) -> Self {
         Self {
             pos,
-            acceleration: 0.1,
+            acceleration: 0.15,
             color,
             velo,
             lifetime: Instant::now()

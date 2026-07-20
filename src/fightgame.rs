@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use rand::random_range;
 use sdl3::{
     pixels::Color,
     rect::{Point, Rect},
@@ -39,8 +40,7 @@ pub struct FightGame {
 impl FightGame {
     pub fn new(player_in_game: Vec<Team>) -> Self {
         let mut players = Vec::new();
-        // tmp - let mut start_positions_red = vec![Vec2::new(16., 32.), Vec2::new(16., 32. + 32.)];
-        let mut start_positions_red = vec![Vec2::new(275., 90.), Vec2::new(16., 32. + 32.)];
+        let mut start_positions_red = vec![Vec2::new(16., 32.), Vec2::new(16., 32. + 32.)];
         let mut start_positions_blue = vec![
             Vec2::new(16., VIRTUAL_HEIGHT as f32 - 32.),
             Vec2::new(16., VIRTUAL_HEIGHT as f32 - (32. + 32.)),
@@ -69,8 +69,7 @@ impl FightGame {
 
         Self {
             state: GameState::Intro,
-            // tmp - into_timer: Timer::new(INTRO_TIME_MS),
-            into_timer: Timer::new(500),
+            into_timer: Timer::new(INTRO_TIME_MS),
             game_timer: Timer::new(GAME_TIME_MS),
             outro_timer: Timer::new(OUTRO_TIME_MS),
             players,
@@ -132,6 +131,14 @@ impl FightGame {
         );
         let ruletime_rect_blue = get_ruletime_rect(0, 0, self.ruletime_blue, RULETIME_RECT_HEIGHT);
         for player in &self.players {
+            let mut color = match player.team {
+                Team::Blue => Color::BLUE,
+                Team::Red => Color::RED,
+                _ => Color::WHITE,
+            };
+            if random_range(0..3) == 0 {
+                color = Color::WHITE;
+            }
             if self.rule_area.contains_point(player.pos.as_point()) {
                 match player.team {
                     Team::Blue => {
@@ -141,7 +148,7 @@ impl FightGame {
                                 ruletime_rect_blue.right() as f32,
                                 ruletime_rect_blue.center().y as f32,
                             ),
-                            Color::BLUE,
+                            color,
                             Vec2::random_normalized(),
                         ));
                     }
@@ -152,7 +159,7 @@ impl FightGame {
                                 ruletime_rect_red.right() as f32,
                                 ruletime_rect_red.center().y as f32,
                             ),
-                            Color::RED,
+                            color,
                             Vec2::random_normalized(),
                         ));
                     }
@@ -334,11 +341,6 @@ impl FightGame {
             platsch.draw(canvas, textures);
         }
 
-        // Particle
-        for particle in &self.particles {
-            particle.draw(canvas);
-        }
-
         // GameTime
         self.game_timer.draw(
             canvas,
@@ -367,6 +369,11 @@ impl FightGame {
             ))
             .unwrap();
 
+        // Particle
+        for particle in &self.particles {
+            particle.draw(canvas);
+        }
+
         // State Abhängig
         match self.state {
             GameState::Intro => {
@@ -389,19 +396,24 @@ impl FightGame {
                     Color::RED,
                 );
                 // - Gewinner Anzeigen -
-                let (winner, looser) = if self.ruletime_blue > self.ruletime_red {
-                    (Color::BLUE, Color::RED)
+                if self.ruletime_blue > self.ruletime_red {
+                    canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
                 } else {
-                    (Color::RED, Color::BLUE)
-                };
-                canvas.set_draw_color(looser);
-                canvas
-                    .fill_rect(Rect::new(60, 70, VIRTUAL_WIDHT - 140, VIRTUAL_HEIGHT - 120))
-                    .unwrap();
-                canvas.set_draw_color(winner);
-                canvas
-                    .fill_rect(Rect::new(40, 30, VIRTUAL_WIDHT - 100, VIRTUAL_HEIGHT - 100))
-                    .unwrap();
+                    canvas.copy(&textures.outro_teams_red, None, None).unwrap();
+                }
+                // let (winner, looser) = if self.ruletime_blue > self.ruletime_red {
+                //     (Color::BLUE, Color::RED)
+                // } else {
+                //     (Color::RED, Color::BLUE)
+                // };
+                // canvas.set_draw_color(looser);
+                // canvas
+                //     .fill_rect(Rect::new(60, 70, VIRTUAL_WIDHT - 140, VIRTUAL_HEIGHT - 120))
+                //     .unwrap();
+                // canvas.set_draw_color(winner);
+                // canvas
+                //     .fill_rect(Rect::new(40, 30, VIRTUAL_WIDHT - 100, VIRTUAL_HEIGHT - 100))
+                //     .unwrap();
             }
             _ => (),
         }
