@@ -1,6 +1,12 @@
 use sdl3::render::WindowCanvas;
 
-use crate::{SceneMessage, Textures, math::Vec2, player::Player, player::Skill};
+use crate::{
+    Scene, SceneMessage, Textures,
+    arcadeinput::ArcadeInput,
+    math::Vec2,
+    overworld::OverWorld,
+    player::{Player, PlayerId, Skill},
+};
 
 pub struct BallGame {
     players: Vec<Player>,
@@ -20,7 +26,12 @@ impl BallGame {
         Self { players }
     }
 
-    pub fn update(&mut self) -> SceneMessage {
+    pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
+        for (gampad_id, player) in self.players.iter().enumerate() {
+            if input.button_pressed(PlayerId(gampad_id), gilrs::Button::Start) {
+                return SceneMessage::ChangeScene(Scene::OverWorld(OverWorld::new()));
+            }
+        }
         SceneMessage::None
     }
 

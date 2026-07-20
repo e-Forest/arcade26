@@ -10,7 +10,7 @@ use sdl3::{
 use crate::{
     ARROW_SPAWN_DISTANCE, Arrow, DASH_GETS_DANGEROUS_TIME, DASH_SPEED, DASH_TIME, DEBUGMODE,
     INPUT_AXIS_THRESHOLD, STAMINA_RELOAD_PER_FRAME, STUNNING_SPEED_ARROW_HIT, STUNNING_TIME, Team,
-    Textures,
+    Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, rect_shifted},
@@ -124,6 +124,8 @@ impl Player {
                 // Velo
                 self.pos_old = self.pos;
                 self.pos = self.pos + self.velo;
+                self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
+                self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
 
                 // -> Stunned
                 if self.stunned_end_time >= Instant::now() {
@@ -227,15 +229,6 @@ impl Player {
     }
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
-        // Image
-        self.ase_player.draw_current_frame(
-            canvas,
-            self.pos,
-            &textures.player,
-            AnchorPosition::BottomCenter,
-            self.fliped,
-        );
-
         // Teamfarbe
         match self.team {
             Team::Blue => {
@@ -244,10 +237,34 @@ impl Player {
             Team::Red => {
                 canvas.set_draw_color(Color::RED);
             }
+            Team::Yellow => {
+                canvas.set_draw_color(Color::YELLOW);
+            }
+            Team::Green => {
+                canvas.set_draw_color(Color::GREEN);
+            }
+            // Team::White => {
+            //     canvas.set_draw_color(Color::WHITE);
+            // }
+            Team::None => {
+                canvas.set_draw_color(Color::WHITE);
+            }
         }
 
         // Position
-        canvas.draw_point(self.pos.as_point()).unwrap();
+        // canvas.draw_point(self.pos.as_point()).unwrap();
+        let p = self.pos.as_point();
+        canvas.draw_rect(Rect::new(p.x - 4, p.y - 1, 8, 2)).unwrap();
+        canvas.draw_rect(Rect::new(p.x - 2, p.y - 2, 4, 4)).unwrap();
+
+        // Image
+        self.ase_player.draw_current_frame(
+            canvas,
+            self.pos,
+            &textures.player,
+            AnchorPosition::BottomCenter,
+            self.fliped,
+        );
 
         // Aim
         if self.is_aiming {
@@ -286,7 +303,7 @@ impl Player {
 pub enum Skill {
     Run,
     Shoot,
-    Jump,
+    Dash,
     DoubleJump,
 }
 

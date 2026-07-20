@@ -8,11 +8,12 @@ use sdl3::{
 
 use crate::{
     Arrow, DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, OUTRO_TIME_MS, Player,
-    STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, STUNNING_TIME, SceneMessage, Team, Textures,
-    VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, STUNNING_TIME, Scene, SceneMessage, Team,
+    Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{self, Vec2, middle_direction, rect_shifted},
+    overworld::OverWorld,
     player::{PlayerMessage, PlayerState, Skill},
     time::Timer,
 };
@@ -33,7 +34,7 @@ pub struct FightGame {
 }
 
 impl FightGame {
-    pub fn new(player_in_game: Vec<Team>) -> Self {
+    pub fn new(player_in_game: Vec<(usize, Team)>) -> Self {
         let mut players = Vec::new();
         let mut start_positions_red = vec![Vec2::new(16., 32.), Vec2::new(16., 32. + 32.)];
         let mut start_positions_blue = vec![
@@ -41,12 +42,13 @@ impl FightGame {
             Vec2::new(16., VIRTUAL_HEIGHT as f32 - (32. + 32.)),
         ];
 
-        for team in player_in_game {
+        for (_gamepad_id, team) in player_in_game {
             let start_pos = match team {
                 Team::Blue => start_positions_blue.remove(0),
                 Team::Red => start_positions_red.remove(0),
+                _ => Vec2::zero(),
             };
-            let p = Player::new(start_pos, vec![Skill::Run, Skill::Shoot, Skill::Jump], team);
+            let p = Player::new(start_pos, vec![Skill::Run, Skill::Shoot, Skill::Dash], team);
             players.push(p);
         }
 
@@ -79,74 +81,87 @@ impl FightGame {
 
     pub fn update(&mut self, input: &ArcadeInput, delta_ms: u32) -> SceneMessage {
         // - Game Time -
-        if self.game_timer.is_over() {
-            return SceneMessage::None;
+        match self.state {
+            GameState::Intro => {
+                // -> InGame
+                if self.into_timer.is_over() {
+                    self.game_timer.restart();
+                    self.state = GameState::InGame;
+                }
+            }
+            GameState::InGame => {
+                self.update_players(input);
+                self.update_arrows();
+                self.update_platsches();
+                self.handle_players_to_arrows();
+                self.handle_players_to_dashingplayers();
+                self.handle_players_to_groundboxes();
+                self.handle_players_to_rulearea(delta_ms);
+
+                // -> Outro
+                if self.game_timer.is_over() {
+                    self.outro_timer.restart();
+                    self.state = GameState::Outro;
+                }
+            }
+            GameState::Outro => {
+                // -> Scene::Overworld
+                if self.outro_timer.is_over() {
+                    return SceneMessage::ChangeScene(Scene::OverWorld(OverWorld::new()));
+                }
+            }
+            GameState::NextRound => (),
         }
 
-        // - Update Players -
-        for (gamepad_id, player) in self.players.iter_mut().enumerate() {
-            let player_messages = player.update(input, gamepad_id);
-            fix_player_position(player, self.ground_boxes.as_slice());
-            for msg in player_messages {
-                match msg {
-                    PlayerMessage::ShootArrow(arrow) => self.arrows.push(arrow),
-                    PlayerMessage::None => (),
+        SceneMessage::None
+    }
+
+    fn handle_players_to_rulearea(&mut self, delta_ms: u32) {
+        for player in &self.players {
+            if self.rule_area.contains_point(player.pos.as_point()) {
+                match player.team {
+                    Team::Blue => self.ruletime_blue += delta_ms,
+                    Team::Red => self.ruletime_red += delta_ms,
+                    _ => (),
                 }
             }
         }
+    }
 
-        // - Update Arrows -
-        for arrow in self.arrows.iter_mut() {
-            arrow.update();
-            if arrow.is_allive() == false
-                && ground_at_point(arrow.pos.as_point(), &self.ground_boxes).is_none()
+    fn handle_players_to_groundboxes(&mut self) {
+        let mut player_not_grounded = Vec::new();
+        for (player_idx, player) in self.players.iter_mut().enumerate() {
+            let mut is_player_groundet = false;
+
+            if let Some(ground_at_current_pos) =
+                ground_at_point(player.pos.as_point(), self.ground_boxes.as_slice())
             {
-                self.platsches
-                    .push(Platsch::new(arrow.pos, &self.platsch_template));
+                is_player_groundet = true;
+                player.last_ground = Some(ground_at_current_pos);
+            }
+
+            if player.state == PlayerState::Dash {
+                is_player_groundet = true;
+                player.last_ground = None;
+            }
+
+            if is_player_groundet == false {
+                player_not_grounded.push(player_idx);
             }
         }
-        self.arrows.retain(|arrow| arrow.is_allive());
 
-        // - Update Platschs -
-        for platsch in self.platsches.iter_mut() {
-            platsch.update();
-        }
-        self.platsches
-            .retain(|platsch| platsch.is_finished() == false);
-
-        // - Check for Player/Arrow Collision -
-        let mut player_stunnings = Vec::new();
-        let mut arrows_to_remove = Vec::new();
-        for (player_idx, player) in self.players.iter().enumerate() {
-            for (arrow_idx, arrow) in self.arrows.iter().enumerate() {
-                if player.team == arrow.team {
-                    continue;
-                }
-                if player.state == PlayerState::Dash || player.state == PlayerState::Stunned {
-                    continue;
-                }
-                if rect_shifted(player.colision_box_arrow, player.pos.as_point())
-                    .has_intersection(rect_shifted(arrow.colision_box, arrow.pos.as_point()))
-                {
-                    player_stunnings.push((
-                        player_idx,
-                        arrow.direction.normalized() * STUNNING_SPEED_ARROW_HIT,
-                    ));
-                    arrows_to_remove.push(arrow_idx);
-                }
-            }
-        }
-        for arrow_idx in arrows_to_remove {
-            self.arrows.remove(arrow_idx);
-        }
-        for (player_idx, stunning_velo) in player_stunnings {
+        for player_idx in player_not_grounded {
             if let Some(player) = self.players.get_mut(player_idx) {
-                player.stunned_end_time = Instant::now() + Duration::from_millis(STUNNING_TIME);
-                player.stunning_velo = stunning_velo;
+                self.platsches
+                    .push(Platsch::new(player.pos, &self.platsch_template));
+                player.pos = player.start_pos;
+                player.stunned_end_time = Instant::now() + Duration::from_millis(1000);
+                player.stunning_velo = Vec2::zero();
             }
         }
+    }
 
-        // - Check for DashingPlayer/Player Collision -
+    fn handle_players_to_dashingplayers(&mut self) {
         let mut player_stunnings = Vec::new();
         let mut player_stop_dashing = Vec::new();
         for (player_idx, player) in self.players.iter().enumerate() {
@@ -191,50 +206,76 @@ impl FightGame {
                 player.state = PlayerState::Idle;
             }
         }
+    }
 
-        // - Check for Player/Groundbox -
-        let mut player_not_grounded = Vec::new();
-        for (player_idx, player) in self.players.iter_mut().enumerate() {
-            let mut is_player_groundet = false;
-
-            if let Some(ground_at_current_pos) =
-                ground_at_point(player.pos.as_point(), self.ground_boxes.as_slice())
-            {
-                is_player_groundet = true;
-                player.last_ground = Some(ground_at_current_pos);
-            }
-
-            if player.state == PlayerState::Dash {
-                is_player_groundet = true;
-                player.last_ground = None;
-            }
-
-            if is_player_groundet == false {
-                player_not_grounded.push(player_idx);
-            }
-        }
-
-        for player_idx in player_not_grounded {
-            if let Some(player) = self.players.get_mut(player_idx) {
-                self.platsches
-                    .push(Platsch::new(player.pos, &self.platsch_template));
-                player.pos = player.start_pos;
-                player.stunned_end_time = Instant::now() + Duration::from_millis(1000);
-                player.stunning_velo = Vec2::zero();
-            }
-        }
-
-        // - Check Player/RuleArea -
-        for player in &self.players {
-            if self.rule_area.contains_point(player.pos.as_point()) {
-                match player.team {
-                    Team::Blue => self.ruletime_blue += delta_ms,
-                    Team::Red => self.ruletime_red += delta_ms,
+    fn handle_players_to_arrows(&mut self) {
+        let mut player_stunnings = Vec::new();
+        let mut arrows_to_remove = Vec::new();
+        for (player_idx, player) in self.players.iter().enumerate() {
+            for (arrow_idx, arrow) in self.arrows.iter().enumerate() {
+                if player.team == arrow.team {
+                    continue;
+                }
+                if player.state == PlayerState::Dash || player.state == PlayerState::Stunned {
+                    continue;
+                }
+                if rect_shifted(player.colision_box_arrow, player.pos.as_point())
+                    .has_intersection(rect_shifted(arrow.colision_box, arrow.pos.as_point()))
+                {
+                    player_stunnings.push((
+                        player_idx,
+                        arrow.direction.normalized() * STUNNING_SPEED_ARROW_HIT,
+                    ));
+                    arrows_to_remove.push(arrow_idx);
                 }
             }
         }
+        for arrow_idx in arrows_to_remove {
+            self.arrows.remove(arrow_idx);
+        }
+        for (player_idx, stunning_velo) in player_stunnings {
+            if let Some(player) = self.players.get_mut(player_idx) {
+                player.stunned_end_time = Instant::now() + Duration::from_millis(STUNNING_TIME);
+                player.stunning_velo = stunning_velo;
+            }
+        }
+    }
 
-        SceneMessage::None
+    fn update_platsches(&mut self) {
+        for platsch in self.platsches.iter_mut() {
+            platsch.update();
+        }
+        self.platsches
+            .retain(|platsch| platsch.is_finished() == false);
+    }
+
+    fn update_arrows(&mut self) {
+        for arrow in self.arrows.iter_mut() {
+            arrow.update();
+            if arrow.is_allive() == false
+                && ground_at_point(arrow.pos.as_point(), &self.ground_boxes).is_none()
+            {
+                self.platsches
+                    .push(Platsch::new(arrow.pos, &self.platsch_template));
+            }
+        }
+        self.arrows.retain(|arrow| arrow.is_allive());
+    }
+
+    fn update_players(&mut self, input: &ArcadeInput) {
+        for (gamepad_id, player) in self.players.iter_mut().enumerate() {
+            if player.team == Team::None {
+                continue;
+            }
+            let player_messages = player.update(input, gamepad_id);
+            fix_player_position(player, self.ground_boxes.as_slice());
+            for msg in player_messages {
+                match msg {
+                    PlayerMessage::ShootArrow(arrow) => self.arrows.push(arrow),
+                    PlayerMessage::None => (),
+                }
+            }
+        }
     }
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
@@ -243,6 +284,9 @@ impl FightGame {
 
         // Player
         for player in &self.players {
+            if player.team == Team::None {
+                continue;
+            }
             player.draw(canvas, textures);
         }
 
@@ -284,29 +328,50 @@ impl FightGame {
             ))
             .unwrap();
 
+        match self.state {
+            GameState::Intro => {
+                // - Regelnd Anzeigen -
+                canvas.copy(&textures.fightgame_rules, None, None).unwrap();
+                // - Timer Anzeigen -
+                self.into_timer.draw(
+                    canvas,
+                    Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
+                    Color::GREEN,
+                    Color::RED,
+                );
+            }
+            GameState::Outro => {
+                // - Timer Anzeigen -
+                self.outro_timer.draw(
+                    canvas,
+                    Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
+                    Color::GREEN,
+                    Color::RED,
+                );
+                // - Gewinner Anzeigen -
+                let (winner, looser) = if self.ruletime_blue > self.ruletime_red {
+                    (Color::BLUE, Color::RED)
+                } else {
+                    (Color::RED, Color::BLUE)
+                };
+                canvas.set_draw_color(looser);
+                canvas
+                    .fill_rect(Rect::new(60, 70, VIRTUAL_WIDHT - 140, VIRTUAL_HEIGHT - 120))
+                    .unwrap();
+                canvas.set_draw_color(winner);
+                canvas
+                    .fill_rect(Rect::new(40, 30, VIRTUAL_WIDHT - 100, VIRTUAL_HEIGHT - 100))
+                    .unwrap();
+            }
+            _ => (),
+        }
+
         // DEBUG
         if DEBUGMODE {
             canvas.set_draw_color(Color::WHITE);
             for r in &self.ground_boxes {
                 canvas.draw_rect(*r).unwrap();
             }
-        }
-
-        // WINNER
-        if self.game_timer.is_over() {
-            let (winner, looser) = if self.ruletime_blue > self.ruletime_red {
-                (Color::BLUE, Color::RED)
-            } else {
-                (Color::RED, Color::BLUE)
-            };
-            canvas.set_draw_color(looser);
-            canvas
-                .fill_rect(Rect::new(60, 70, VIRTUAL_WIDHT - 140, VIRTUAL_HEIGHT - 120))
-                .unwrap();
-            canvas.set_draw_color(winner);
-            canvas
-                .fill_rect(Rect::new(40, 30, VIRTUAL_WIDHT - 100, VIRTUAL_HEIGHT - 100))
-                .unwrap();
         }
     }
 }

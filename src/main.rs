@@ -1,8 +1,9 @@
+use sdl3::Sdl;
 use sdl3::image::LoadTexture;
 use sdl3::pixels::Color;
 use sdl3::rect::{Point, Rect};
 use sdl3::render::{BlendMode, ScaleMode, Texture, TextureCreator};
-use sdl3::video::WindowContext;
+use sdl3::video::{Display, DisplayMode, FullscreenType, WindowContext, WindowPos};
 use sdl3::{keyboard::Keycode, render::WindowCanvas};
 use std::thread::sleep;
 use std::time::Instant;
@@ -62,6 +63,7 @@ pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
 pub const INTRO_TIME_MS: u32 = 3000;
 pub const OUTRO_TIME_MS: u32 = 5000;
+pub const START_GAME_TIME_MS: u32 = 3000;
 
 /*
 #5
@@ -85,13 +87,32 @@ pub const OUTRO_TIME_MS: u32 = 5000;
 pub fn main() {
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+    // let largest = video_subsystem
+    //     .displays()
+    //     .iter()
+    //     .max_by_key(|d| {
+    //         for d2 in d.iter() {
+    //             let b = d2.get_bounds().unwrap();
+    //             b.w * b.h
+    //         }
+    //     })
+    //     .unwrap();
 
-    let window = video_subsystem
+    let mut window = video_subsystem
         .window("Arcade26", 800, 600)
-        .position_centered()
-        .fullscreen()
+        // .position_centered()
+        // .fullscreen()
         .build()
         .unwrap();
+
+    if let Some(display) = video_subsystem.displays().unwrap().get(1) {
+        let bounds = display.get_bounds().unwrap();
+        window.set_position(
+            WindowPos::Positioned(bounds.x),
+            WindowPos::Positioned(bounds.y),
+        );
+    }
+    window.set_fullscreen(true).unwrap();
 
     let mut canvas = window.into_canvas();
     let creator = canvas.texture_creator();
@@ -112,13 +133,7 @@ pub fn main() {
 
     let textures = Textures::new(&creator);
 
-    // let mut current_scene = Scene::OverWorld(OverWorld::new());
-    let mut current_scene = Scene::FightGame(FightGame::new(vec![
-        Team::Blue,
-        Team::Blue,
-        Team::Red,
-        Team::Red,
-    ]));
+    let mut current_scene = Scene::OverWorld(OverWorld::new());
 
     let mut fps_guard = FpsGuard::new(60);
 
@@ -146,11 +161,11 @@ pub fn main() {
                         over_world.draw(&mut tcnv, &textures);
                     }
                     Scene::BallGame(ball_game) => {
-                        scene_msg = ball_game.update();
+                        scene_msg = ball_game.update(&input);
                         ball_game.draw(&mut tcnv, &textures);
                     }
                     Scene::JumpGame(jump_game) => {
-                        scene_msg = jump_game.update();
+                        scene_msg = jump_game.update(&input);
                         jump_game.draw(&mut tcnv, &textures);
                     }
                     Scene::FightGame(fight_game) => {
@@ -267,6 +282,16 @@ impl Arrow {
                 Team::Red => {
                     canvas.set_draw_color(Color::RED);
                 }
+                Team::Yellow => {
+                    canvas.set_draw_color(Color::YELLOW);
+                }
+                Team::Green => {
+                    canvas.set_draw_color(Color::GREEN);
+                }
+                // Team::White => {
+                //     canvas.set_draw_color(Color::WHITE);
+                // }
+                Team::None => (),
             }
             canvas
                 .draw_rect(rect_shifted(self.colision_box, self.pos.as_point()))
@@ -292,41 +317,41 @@ pub struct Textures<'a> {
     pub ballgame_background: Texture<'a>,
     pub arrow: Texture<'a>,
     pub platsch: Texture<'a>,
+    pub fightgame_rules: Texture<'a>,
 }
 
 impl<'a> Textures<'a> {
     fn new(creator: &'a TextureCreator<WindowContext>) -> Self {
-        let runner = creator.load_texture("assets/player.png").unwrap();
-        let overworld_background = creator
-            .load_texture("assets/overworld_background.png")
-            .unwrap();
-        let jumpgame_background = creator
-            .load_texture("assets/jumpgame_background.png")
-            .unwrap();
-        let fightgame_background = creator
-            .load_texture("assets/fightgame_background.png")
-            .unwrap();
-        let ballgame_background = creator
-            .load_texture("assets/ballgame_background.png")
-            .unwrap();
-        let arrow = creator.load_texture("assets/arrow.png").unwrap();
-        let platsch = creator.load_texture("assets/platsch.png").unwrap();
         Self {
-            player: runner,
-            overworld_background,
-            jumpgame_background,
-            fightgame_background,
-            ballgame_background,
-            arrow,
-            platsch,
+            // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            player: creator.load_texture("assets/player.png").unwrap(),
+            overworld_background: creator
+                .load_texture("assets/overworld_background.png")
+                .unwrap(),
+            jumpgame_background: creator
+                .load_texture("assets/jumpgame_background.png")
+                .unwrap(),
+            fightgame_background: creator
+                .load_texture("assets/fightgame_background.png")
+                .unwrap(),
+            ballgame_background: creator
+                .load_texture("assets/ballgame_background.png")
+                .unwrap(),
+            arrow: creator.load_texture("assets/arrow.png").unwrap(),
+            platsch: creator.load_texture("assets/platsch.png").unwrap(),
+            fightgame_rules: creator.load_texture("assets/fightgame_rules.png").unwrap(),
         }
     }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Team {
+    None,
     Blue,
     Red,
+    Green,
+    Yellow,
+    // White,
 }
 
 pub enum GameState {

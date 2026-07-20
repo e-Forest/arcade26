@@ -156,3 +156,20 @@ pub fn rect_shifted(rect: Rect, shift: Point) -> Rect {
         rect.height(),
     )
 }
+
+pub fn devide_rect(rect: Rect, rows: u32, cols: u32) -> Vec<Rect> {
+    let mut out = Vec::new();
+    let w = rect.width() / cols;
+    let h = rect.height() / rows;
+    for i in 0..rows * cols {
+        let x = i % cols;
+        let y = i / cols;
+        out.push(Rect::new(
+            rect.x + x as i32 * w as i32,
+            rect.y + y as i32 * h as i32,
+            w,
+            h,
+        ));
+    }
+    out
+}
