@@ -7,7 +7,7 @@ use sdl3::{
 };
 
 use crate::{
-    Arrow, DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, OUTRO_TIME_MS, Player,
+    Arrow, DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, OUTRO_TIME_MS, Particle, Player,
     STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, STUNNING_TIME, Scene, SceneMessage, Team,
     Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
@@ -17,6 +17,8 @@ use crate::{
     player::{PlayerMessage, PlayerState, Skill},
     time::Timer,
 };
+
+const RULETIME_RECT_HEIGHT: u32 = 3;
 
 pub struct FightGame {
     state: GameState,
@@ -28,21 +30,23 @@ pub struct FightGame {
     ground_boxes: Vec<Rect>,
     rule_area: Rect,
     platsches: Vec<Platsch>,
+    particles: Vec<Particle>,
     ruletime_blue: u32,
     ruletime_red: u32,
     platsch_template: AsePlayer,
 }
 
 impl FightGame {
-    pub fn new(player_in_game: Vec<(usize, Team)>) -> Self {
+    pub fn new(player_in_game: Vec<Team>) -> Self {
         let mut players = Vec::new();
-        let mut start_positions_red = vec![Vec2::new(16., 32.), Vec2::new(16., 32. + 32.)];
+        // tmp - let mut start_positions_red = vec![Vec2::new(16., 32.), Vec2::new(16., 32. + 32.)];
+        let mut start_positions_red = vec![Vec2::new(275., 90.), Vec2::new(16., 32. + 32.)];
         let mut start_positions_blue = vec![
             Vec2::new(16., VIRTUAL_HEIGHT as f32 - 32.),
             Vec2::new(16., VIRTUAL_HEIGHT as f32 - (32. + 32.)),
         ];
 
-        for (_gamepad_id, team) in player_in_game {
+        for team in player_in_game {
             let start_pos = match team {
                 Team::Blue => start_positions_blue.remove(0),
                 Team::Red => start_positions_red.remove(0),
@@ -65,7 +69,8 @@ impl FightGame {
 
         Self {
             state: GameState::Intro,
-            into_timer: Timer::new(INTRO_TIME_MS),
+            // tmp - into_timer: Timer::new(INTRO_TIME_MS),
+            into_timer: Timer::new(500),
             game_timer: Timer::new(GAME_TIME_MS),
             outro_timer: Timer::new(OUTRO_TIME_MS),
             players,
@@ -74,6 +79,7 @@ impl FightGame {
             ground_boxes,
             platsch_template: platsch_json_template,
             platsches: Vec::new(),
+            particles: Vec::new(),
             ruletime_blue: 0,
             ruletime_red: 0,
         }
@@ -93,6 +99,7 @@ impl FightGame {
                 self.update_players(input);
                 self.update_arrows();
                 self.update_platsches();
+                self.update_particles();
                 self.handle_players_to_arrows();
                 self.handle_players_to_dashingplayers();
                 self.handle_players_to_groundboxes();
@@ -117,11 +124,38 @@ impl FightGame {
     }
 
     fn handle_players_to_rulearea(&mut self, delta_ms: u32) {
+        let ruletime_rect_red = get_ruletime_rect(
+            0,
+            RULETIME_RECT_HEIGHT as i32,
+            self.ruletime_red,
+            RULETIME_RECT_HEIGHT,
+        );
+        let ruletime_rect_blue = get_ruletime_rect(0, 0, self.ruletime_blue, RULETIME_RECT_HEIGHT);
         for player in &self.players {
             if self.rule_area.contains_point(player.pos.as_point()) {
                 match player.team {
-                    Team::Blue => self.ruletime_blue += delta_ms,
-                    Team::Red => self.ruletime_red += delta_ms,
+                    Team::Blue => {
+                        self.ruletime_blue += delta_ms;
+                        self.particles.push(Particle::new(
+                            Vec2::new(
+                                ruletime_rect_blue.right() as f32,
+                                ruletime_rect_blue.center().y as f32,
+                            ),
+                            Color::BLUE,
+                            Vec2::random_normalized(),
+                        ));
+                    }
+                    Team::Red => {
+                        self.ruletime_red += delta_ms;
+                        self.particles.push(Particle::new(
+                            Vec2::new(
+                                ruletime_rect_red.right() as f32,
+                                ruletime_rect_red.center().y as f32,
+                            ),
+                            Color::RED,
+                            Vec2::random_normalized(),
+                        ));
+                    }
                     _ => (),
                 }
             }
@@ -300,6 +334,11 @@ impl FightGame {
             platsch.draw(canvas, textures);
         }
 
+        // Particle
+        for particle in &self.particles {
+            particle.draw(canvas);
+        }
+
         // GameTime
         self.game_timer.draw(
             canvas,
@@ -313,24 +352,25 @@ impl FightGame {
         canvas
             .fill_rect(get_ruletime_rect(
                 0,
-                VIRTUAL_HEIGHT as i32 - 4,
+                0,
                 self.ruletime_blue,
-                1,
+                RULETIME_RECT_HEIGHT,
             ))
             .unwrap();
         canvas.set_draw_color(Color::RED);
         canvas
             .fill_rect(get_ruletime_rect(
                 0,
-                VIRTUAL_HEIGHT as i32 - 5,
+                RULETIME_RECT_HEIGHT as i32,
                 self.ruletime_red,
-                1,
+                RULETIME_RECT_HEIGHT,
             ))
             .unwrap();
 
+        // State Abhängig
         match self.state {
             GameState::Intro => {
-                // - Regelnd Anzeigen -
+                // - Regeln Anzeigen -
                 canvas.copy(&textures.fightgame_rules, None, None).unwrap();
                 // - Timer Anzeigen -
                 self.into_timer.draw(
@@ -373,6 +413,13 @@ impl FightGame {
                 canvas.draw_rect(*r).unwrap();
             }
         }
+    }
+
+    fn update_particles(&mut self) {
+        for particle in self.particles.iter_mut() {
+            particle.update();
+        }
+        self.particles.retain(|particle| particle.is_allive());
     }
 }
 

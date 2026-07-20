@@ -118,10 +118,10 @@ impl<'a> OverWorld {
         SceneMessage::None
     }
 
-    fn get_players_in_team(&self) -> Vec<(usize, Team)> {
+    fn get_players_in_team(&self) -> Vec<Team> {
         let mut out = Vec::new();
-        for (gamepad_id, p) in self.players.iter().enumerate() {
-            out.push((gamepad_id, p.team));
+        for p in self.players.iter() {
+            out.push(p.team);
         }
         out
     }

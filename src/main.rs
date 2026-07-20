@@ -1,3 +1,4 @@
+use rand::random_range;
 use sdl3::Sdl;
 use sdl3::image::LoadTexture;
 use sdl3::pixels::Color;
@@ -48,6 +49,8 @@ pub const VIRTUAL_HEIGHT: u32 = 180; // 1080/6
 pub const ARROW_LIFETIME: Duration = Duration::from_millis(600);
 pub const ARROW_SPEED: f32 = 3.;
 pub const ARROW_SPAWN_DISTANCE: f32 = 10.;
+
+pub const PARTICLE_LIFETIME_MAX_MS: u32 = 600;
 
 pub const STUNNING_TIME: u64 = 300;
 pub const STUNNING_SPEED_ARROW_HIT: f32 = 1.;
@@ -133,10 +136,17 @@ pub fn main() {
 
     let textures = Textures::new(&creator);
 
-    let mut current_scene = Scene::OverWorld(OverWorld::new());
+    // let mut current_scene = Scene::OverWorld(OverWorld::new());
+    let mut current_scene = Scene::FightGame(FightGame::new(vec![
+        Team::Blue,
+        Team::Red,
+        Team::Blue,
+        Team::Red,
+    ]));
 
     let mut fps_guard = FpsGuard::new(60);
 
+    // - Mainloop -
     loop {
         fps_guard.start_frame();
         if is_sdl_quit(&mut sdl_eventpump) {
@@ -191,7 +201,7 @@ pub fn main() {
                         }
                     },
                 }
-                fps_guard.draw(tcnv, 3, 3);
+                fps_guard.draw(tcnv, VIRTUAL_WIDHT as i32 - 20, 0);
             })
             .unwrap();
         draw_rendertarget_as_letterbox(&mut canvas, &rendertarget);
@@ -359,4 +369,39 @@ pub enum GameState {
     InGame,
     NextRound,
     Outro,
+}
+
+pub struct Particle {
+    pos: Vec2,
+    acceleration: f32,
+    color: Color,
+    velo: Vec2,
+    lifetime: Instant,
+}
+
+impl Particle {
+    pub fn new(pos: Vec2, color: Color, velo: Vec2) -> Self {
+        Self {
+            pos,
+            acceleration: 0.1,
+            color,
+            velo,
+            lifetime: Instant::now()
+                + Duration::from_millis(random_range(0..PARTICLE_LIFETIME_MAX_MS as u64)),
+        }
+    }
+
+    pub fn update(&mut self) {
+        self.velo = self.velo.lerp(Vec2::zero(), self.acceleration);
+        self.pos = self.pos + self.velo;
+    }
+
+    pub fn draw(&self, canvas: &mut WindowCanvas) {
+        canvas.set_draw_color(self.color);
+        canvas.draw_point(self.pos.as_point()).unwrap();
+    }
+
+    pub fn is_allive(&self) -> bool {
+        Instant::now() < self.lifetime
+    }
 }
