@@ -9,11 +9,11 @@ use sdl3::{
 
 use crate::{
     ARROW_SPAWN_DISTANCE, Arrow, DASH_GETS_DANGEROUS_TIME, DASH_SPEED, DASH_TIME, DEBUGMODE,
-    INPUT_AXIS_THRESHOLD, STAMINA_RELOAD_PER_FRAME, STUNNING_SPEED_ARROW_HIT, STUNNING_TIME, Team,
-    Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    INPUT_AXIS_THRESHOLD, JUMP_SPEED, STAMINA_RELOAD_PER_FRAME, STUNNING_SPEED_ARROW_HIT,
+    STUNNING_TIME, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
-    math::{Vec2, rect_shifted},
+    math::{Vec2, lerp, rect_shifted},
 };
 
 pub struct Player {
@@ -26,7 +26,6 @@ pub struct Player {
     pub colision_box_arrow: Rect,
     pub colision_box_dash: Rect,
     pub ase_player: AsePlayer,
-    pub skills: Vec<Skill>,
     pub acceleration: f32,
     pub speed: f32,
     pub is_aiming: bool,
@@ -38,13 +37,13 @@ pub struct Player {
     pub last_ground: Option<Rect>,
     pub stamina: f32,
     pub state: PlayerState,
+    pub jump_pressed_start: Instant,
 }
 
 impl Player {
-    pub fn new(pos: Vec2, skills: Vec<Skill>, team: Team) -> Self {
+    pub fn new(pos: Vec2, team: Team) -> Self {
         let player = Player {
             pos,
-            skills,
             team,
             start_pos: pos,
             pos_old: pos,
@@ -64,11 +63,13 @@ impl Player {
             last_ground: None,
             stamina: 3.,
             state: PlayerState::Idle,
+            jump_pressed_start: Instant::now(),
         };
         player
     }
-    pub fn update(&mut self, input: &ArcadeInput, gamepad_id: usize) -> Vec<PlayerMessage> {
+    pub fn update_fighter(&mut self, input: &ArcadeInput, gamepad_id: usize) -> Vec<PlayerMessage> {
         let mut out = Vec::new();
+
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
         let vertical_movement = -input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickY);
         let input_move_direction = Vec2::new(horizontal_movement, vertical_movement).normalized();
@@ -213,9 +214,78 @@ impl Player {
                     self.state = PlayerState::Idle;
                 }
             }
+            _ => (),
         }
 
         out
+    }
+
+    pub fn update_jumper(
+        &mut self,
+        input: &ArcadeInput,
+        gamepad_id: usize,
+        gravity: f32,
+        ground_y: u32,
+    ) {
+        let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
+        let input_move_direction = Vec2::new(horizontal_movement, 0.).normalized();
+
+        self.velo = self
+            .velo
+            .lerp(input_move_direction * self.speed, self.acceleration);
+
+        match self.state {
+            PlayerState::Move => {
+                self.ase_player.play_tag("move", true);
+
+                // Stamina
+                self.stamina_reload(0.6);
+
+                // Velo
+                self.pos_old = self.pos;
+                self.pos = self.pos + self.velo;
+                self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
+                self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
+
+                // -> Jump
+                let is_grounded = self.pos.y >= ground_y as f32;
+                let is_input_jump = input.button_pressed(PlayerId(gamepad_id), Button::South);
+
+                const JUMP_HOLDABLE: Duration = Duration::from_millis(200);
+                if is_grounded {
+                    if is_input_jump {
+                        self.velo.y = -JUMP_SPEED;
+                        self.jump_pressed_start = Instant::now();
+                    } else {
+                        self.pos.y = ground_y as f32;
+                    }
+                } else {
+                    if !(is_input_jump && self.jump_pressed_start.elapsed() < JUMP_HOLDABLE) {
+                        self.velo.y += gravity;
+                    }
+                }
+            }
+            PlayerState::Stunned => {
+                self.ase_player.play_tag("stunned", true);
+
+                // Velo
+                self.pos = self.pos + self.stunning_velo;
+
+                let remaining_time = self
+                    .stunned_end_time
+                    .saturating_duration_since(Instant::now())
+                    .as_millis() as f32;
+                let stunning_progress = 1. - (1. / STUNNING_TIME as f32 * remaining_time);
+                println!("{}", stunning_progress);
+                self.stunning_velo.lerp(Vec2::zero(), stunning_progress);
+
+                // -> Idle
+                if self.stunned_end_time < Instant::now() {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            _ => (),
+        }
     }
 
     fn stamina_reload(&mut self, relaxation_factor: f32) {
@@ -300,12 +370,16 @@ impl Player {
     }
 }
 
-pub enum Skill {
-    Run,
-    Shoot,
-    Dash,
-    DoubleJump,
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum Skill {
+//     Idle,
+//     VerticalMove,
+//     HorizontalMove,
+//     Shoot,
+//     Dash,
+//     DoubleJump,
+//     Jump,
+// }
 
 pub enum PlayerMessage {
     ShootArrow(Arrow),
@@ -322,4 +396,5 @@ pub enum PlayerState {
     Shoot,
     Dash,
     Stunned,
+    Jump,
 }

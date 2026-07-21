@@ -13,9 +13,9 @@ use crate::{
     Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
-    math::{self, Vec2, middle_direction, rect_shifted},
+    math::{Vec2, middle_direction, rect_shifted},
     overworld::OverWorld,
-    player::{PlayerMessage, PlayerState, Skill},
+    player::{PlayerMessage, PlayerState},
     time::Timer,
 };
 
@@ -52,7 +52,7 @@ impl FightGame {
                 Team::Red => start_positions_red.remove(0),
                 _ => Vec2::zero(),
             };
-            let p = Player::new(start_pos, vec![Skill::Run, Skill::Shoot, Skill::Dash], team);
+            let p = Player::new(start_pos, team);
             players.push(p);
         }
 
@@ -308,7 +308,7 @@ impl FightGame {
             if player.team == Team::None {
                 continue;
             }
-            let player_messages = player.update(input, gamepad_id);
+            let player_messages = player.update_fighter(input, gamepad_id);
             fix_player_position(player, self.ground_boxes.as_slice());
             for msg in player_messages {
                 match msg {
@@ -401,19 +401,6 @@ impl FightGame {
                 } else {
                     canvas.copy(&textures.outro_teams_red, None, None).unwrap();
                 }
-                // let (winner, looser) = if self.ruletime_blue > self.ruletime_red {
-                //     (Color::BLUE, Color::RED)
-                // } else {
-                //     (Color::RED, Color::BLUE)
-                // };
-                // canvas.set_draw_color(looser);
-                // canvas
-                //     .fill_rect(Rect::new(60, 70, VIRTUAL_WIDHT - 140, VIRTUAL_HEIGHT - 120))
-                //     .unwrap();
-                // canvas.set_draw_color(winner);
-                // canvas
-                //     .fill_rect(Rect::new(40, 30, VIRTUAL_WIDHT - 100, VIRTUAL_HEIGHT - 100))
-                //     .unwrap();
             }
             _ => (),
         }

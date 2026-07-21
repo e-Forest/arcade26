@@ -2,7 +2,7 @@ use sdl3::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
     BallGame, DEBUGMODE, FightGame, JumpGame, Player, PlayerId, START_GAME_TIME_MS, Scene,
-    SceneMessage, Skill, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, devide_rect, rect_shifted},
@@ -28,11 +28,7 @@ impl<'a> OverWorld {
     pub fn new() -> Self {
         let mut players = Vec::new();
         for i in 0..4 {
-            let mut p = Player::new(
-                Vec2::new(230. + (1. + i as f32) * 16., 80.),
-                vec![Skill::Run, Skill::Shoot],
-                Team::None,
-            );
+            let mut p = Player::new(Vec2::new(230. + (1. + i as f32) * 16., 80.), Team::None);
             p.fliped = true;
             players.push(p);
         }
@@ -97,7 +93,9 @@ impl<'a> OverWorld {
         if players_at_noplay <= 2 {
             if is_fair_temas_jumpgame && players_at_jumpgame + players_at_noplay == 4 {
                 if self.start_game_timer.is_over() {
-                    return SceneMessage::ChangeScene(Scene::JumpGame(JumpGame::new()));
+                    return SceneMessage::ChangeScene(Scene::JumpGame(JumpGame::new(
+                        self.get_players_in_team(),
+                    )));
                 }
             } else if is_fair_teams_ballgame && players_at_ballgame + players_at_noplay == 4 {
                 if self.start_game_timer.is_over() {
@@ -173,7 +171,7 @@ impl<'a> OverWorld {
             {
                 player.team = Team::Green;
             }
-            player.update(input, idx);
+            player.update_fighter(input, idx);
         }
     }
 

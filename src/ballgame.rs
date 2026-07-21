@@ -5,7 +5,7 @@ use crate::{
     arcadeinput::ArcadeInput,
     math::Vec2,
     overworld::OverWorld,
-    player::{Player, PlayerId, Skill},
+    player::{Player, PlayerId},
 };
 
 pub struct BallGame {
@@ -16,11 +16,7 @@ impl BallGame {
     pub fn new() -> Self {
         let mut players = Vec::new();
         for i in 0..4 {
-            let p = Player::new(
-                Vec2::new((1. + i as f32) * 30., 145.),
-                vec![Skill::Run, Skill::Shoot],
-                crate::Team::Blue,
-            );
+            let p = Player::new(Vec2::new((1. + i as f32) * 30., 145.), crate::Team::Blue);
             players.push(p);
         }
         Self { players }

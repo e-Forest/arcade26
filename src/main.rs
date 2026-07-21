@@ -60,6 +60,8 @@ pub const DASH_TIME: u64 = 350;
 pub const DASH_SPEED: f32 = 1.8;
 pub const DASH_GETS_DANGEROUS_TIME: u64 = 150;
 
+pub const JUMP_SPEED: f32 = 10.;
+
 pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 
@@ -67,25 +69,6 @@ pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
 pub const INTRO_TIME_MS: u32 = 3000;
 pub const OUTRO_TIME_MS: u32 = 5000;
 pub const START_GAME_TIME_MS: u32 = 3000;
-
-/*
-#5
-. fix_player_position verbessert
-. fps-guard eingesetzt
-
-#4
-. fix_player_position funktioniert einigermaßen
-
-#3
-. dash ermöglicht
-
-#2
-. aim-direction mit punkt dargestellt
-. arrows fliegen
-
-#1
-. Player ausgegliedert
-*/
 
 pub fn main() {
     let sdl_context = sdl3::init().unwrap();
@@ -137,11 +120,11 @@ pub fn main() {
     let textures = Textures::new(&creator);
 
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
-    let mut current_scene = Scene::FightGame(FightGame::new(vec![
+    let mut current_scene = Scene::JumpGame(JumpGame::new(vec![
         Team::Blue,
         Team::Red,
-        Team::Blue,
-        Team::Red,
+        Team::Yellow,
+        Team::Green,
     ]));
 
     let mut fps_guard = FpsGuard::new(60);
@@ -323,6 +306,7 @@ pub struct Textures<'a> {
     pub player: Texture<'a>,
     pub overworld_background: Texture<'a>,
     pub jumpgame_background: Texture<'a>,
+    pub jumpgame_paralax: Texture<'a>,
     pub fightgame_background: Texture<'a>,
     pub ballgame_background: Texture<'a>,
     pub arrow: Texture<'a>,
@@ -345,6 +329,7 @@ impl<'a> Textures<'a> {
             jumpgame_background: creator
                 .load_texture("assets/jumpgame_background.png")
                 .unwrap(),
+            jumpgame_paralax: creator.load_texture("assets/jumpgame_paralax.png").unwrap(),
             fightgame_background: creator
                 .load_texture("assets/fightgame_background.png")
                 .unwrap(),
