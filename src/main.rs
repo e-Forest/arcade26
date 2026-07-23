@@ -41,26 +41,12 @@ use time::*;
 pub mod player;
 use player::*;
 
-pub const DEBUGMODE: bool = false;
+pub const DEBUGMODE: bool = true;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
 pub const VIRTUAL_HEIGHT: u32 = 180; // 1080/6
 
-pub const ARROW_LIFETIME: Duration = Duration::from_millis(600);
-pub const ARROW_SPEED: f32 = 3.;
-pub const ARROW_SPAWN_DISTANCE: f32 = 10.;
-
 pub const PARTICLE_LIFETIME_MAX_MS: u32 = 600;
-
-pub const STUNNING_TIME: u64 = 300;
-pub const STUNNING_SPEED_ARROW_HIT: f32 = 1.;
-pub const STUNNING_SPEED_DASH_HIT: f32 = 1.6;
-
-pub const DASH_TIME: u64 = 350;
-pub const DASH_SPEED: f32 = 1.8;
-pub const DASH_GETS_DANGEROUS_TIME: u64 = 150;
-
-pub const JUMP_SPEED: f32 = 10.;
 
 pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
@@ -70,24 +56,44 @@ pub const INTRO_TIME_MS: u32 = 3000;
 pub const OUTRO_TIME_MS: u32 = 5000;
 pub const START_GAME_TIME_MS: u32 = 3000;
 
+pub const SCORE_RECT_HEIGHT: u32 = 3;
+
+// - Fightgame -
+pub const FIGHTGAME_PLAYER_SPEED: f32 = 1.0;
+
+pub const FIGHTGAME_STUNNING_TIME: u64 = 300;
+pub const STUNNING_SPEED_ARROW_HIT: f32 = 1.;
+pub const STUNNING_SPEED_DASH_HIT: f32 = 1.6;
+
+pub const DASH_TIME: u64 = 350;
+pub const DASH_SPEED: f32 = 1.8;
+pub const DASH_GETS_DANGEROUS_TIME: u64 = 150;
+
+pub const ARROW_LIFETIME: Duration = Duration::from_millis(600);
+pub const ARROW_SPEED: f32 = 3.;
+pub const ARROW_SPAWN_DISTANCE: f32 = 10.;
+
+// - Jumpgame -
+pub const JUMPGAME_STUNNING_TIME: u64 = 600;
+pub const STUNNING_MOVE_FACTOR: f32 = 0.85;
+pub const JUMPGAME_PLAYER_SPEED: f32 = 2.0;
+pub const JUMPGAME_GROUND_Y: u32 = 120;
+pub const JUMPGAME_LOW_GRAVITY: f32 = 1.;
+pub const JUMPGAME_HIGHT_GRAVITY: f32 = 2.;
+pub const JUMPGAME_JUMP_FORCE: f32 = 12.;
+pub const JUMP_MAX_HOLD: Duration = Duration::from_millis(200);
+pub const SCORE_MAX: u32 = (GAME_TIME_MS / 60) * VIRTUAL_WIDHT;
+
+pub const PARALAX_FACTOR: i32 = 5;
+pub const METER_RUN_SPEED: f32 = 2.5;
+
 pub fn main() {
+    println!("score-max:{}", SCORE_MAX);
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
-    // let largest = video_subsystem
-    //     .displays()
-    //     .iter()
-    //     .max_by_key(|d| {
-    //         for d2 in d.iter() {
-    //             let b = d2.get_bounds().unwrap();
-    //             b.w * b.h
-    //         }
-    //     })
-    //     .unwrap();
 
     let mut window = video_subsystem
         .window("Arcade26", 800, 600)
-        // .position_centered()
-        // .fullscreen()
         .build()
         .unwrap();
 
@@ -119,13 +125,13 @@ pub fn main() {
 
     let textures = Textures::new(&creator);
 
-    // let mut current_scene = Scene::OverWorld(OverWorld::new());
-    let mut current_scene = Scene::JumpGame(JumpGame::new(vec![
-        Team::Blue,
-        Team::Red,
-        Team::Yellow,
-        Team::Green,
-    ]));
+    let mut current_scene = Scene::OverWorld(OverWorld::new());
+    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![
+    //     Team::Blue,
+    //     Team::Red,
+    //     Team::Yellow,
+    //     Team::Green,
+    // ]));
 
     let mut fps_guard = FpsGuard::new(60);
 
@@ -314,6 +320,14 @@ pub struct Textures<'a> {
     pub fightgame_rules: Texture<'a>,
     pub outro_teams_red: Texture<'a>,
     pub outro_teams_blue: Texture<'a>,
+    pub outro_single_red: Texture<'a>,
+    pub outro_single_blue: Texture<'a>,
+    pub outro_single_green: Texture<'a>,
+    pub outro_single_yellow: Texture<'a>,
+    pub crate_single: Texture<'a>,
+    pub crate_stack: Texture<'a>,
+    pub market_sign: Texture<'a>,
+    pub market_cart: Texture<'a>,
 }
 
 impl<'a> Textures<'a> {
@@ -322,6 +336,16 @@ impl<'a> Textures<'a> {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
             outro_teams_red: creator.load_texture("assets/outro_teams_red.png").unwrap(),
             outro_teams_blue: creator.load_texture("assets/outro_teams_blue.png").unwrap(),
+            outro_single_red: creator.load_texture("assets/outro_single_red.png").unwrap(),
+            outro_single_blue: creator
+                .load_texture("assets/outro_single_blue.png")
+                .unwrap(),
+            outro_single_green: creator
+                .load_texture("assets/outro_single_green.png")
+                .unwrap(),
+            outro_single_yellow: creator
+                .load_texture("assets/outro_single_yellow.png")
+                .unwrap(),
             player: creator.load_texture("assets/player.png").unwrap(),
             overworld_background: creator
                 .load_texture("assets/overworld_background.png")
@@ -339,6 +363,10 @@ impl<'a> Textures<'a> {
             arrow: creator.load_texture("assets/arrow.png").unwrap(),
             platsch: creator.load_texture("assets/platsch.png").unwrap(),
             fightgame_rules: creator.load_texture("assets/fightgame_rules.png").unwrap(),
+            crate_single: creator.load_texture("assets/crate_single.png").unwrap(),
+            crate_stack: creator.load_texture("assets/crate_stack.png").unwrap(),
+            market_sign: creator.load_texture("assets/market_sign.png").unwrap(),
+            market_cart: creator.load_texture("assets/market_cart.png").unwrap(),
         }
     }
 }
@@ -351,6 +379,17 @@ pub enum Team {
     Green,
     Yellow,
     // White,
+}
+impl Team {
+    pub fn color(&self) -> Color {
+        match self {
+            Team::Blue => Color::BLUE,
+            Team::Red => Color::RED,
+            Team::Yellow => Color::YELLOW,
+            Team::Green => Color::GREEN,
+            Team::None => Color::WHITE,
+        }
+    }
 }
 
 pub enum GameState {

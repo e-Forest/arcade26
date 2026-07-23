@@ -8,9 +8,9 @@ use sdl3::{
 };
 
 use crate::{
-    Arrow, DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, OUTRO_TIME_MS, Particle, Player,
-    STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, STUNNING_TIME, Scene, SceneMessage, Team,
-    Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    Arrow, DEBUGMODE, FIGHTGAME_STUNNING_TIME, GAME_TIME_MS, GameState, INTRO_TIME_MS,
+    OUTRO_TIME_MS, Particle, Player, SCORE_RECT_HEIGHT, STUNNING_SPEED_ARROW_HIT,
+    STUNNING_SPEED_DASH_HIT, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, middle_direction, rect_shifted},
@@ -18,8 +18,6 @@ use crate::{
     player::{PlayerMessage, PlayerState},
     time::Timer,
 };
-
-const RULETIME_RECT_HEIGHT: u32 = 3;
 
 pub struct FightGame {
     state: GameState,
@@ -123,13 +121,8 @@ impl FightGame {
     }
 
     fn handle_players_to_rulearea(&mut self, delta_ms: u32) {
-        let ruletime_rect_red = get_ruletime_rect(
-            0,
-            RULETIME_RECT_HEIGHT as i32,
-            self.ruletime_red,
-            RULETIME_RECT_HEIGHT,
-        );
-        let ruletime_rect_blue = get_ruletime_rect(0, 0, self.ruletime_blue, RULETIME_RECT_HEIGHT);
+        let ruletime_rect_red = get_ruletime_rect(0, SCORE_RECT_HEIGHT as i32, self.ruletime_red);
+        let ruletime_rect_blue = get_ruletime_rect(0, 0, self.ruletime_blue);
         for player in &self.players {
             let mut color = match player.team {
                 Team::Blue => Color::BLUE,
@@ -215,7 +208,7 @@ impl FightGame {
                     if player_idx == player2_idx {
                         continue;
                     }
-                    let box2 = rect_shifted(player2.colision_box_arrow, player2.pos.as_point());
+                    let box2 = rect_shifted(player2.colision_box, player2.pos.as_point());
                     if box1.has_intersection(box2) == false {
                         continue;
                     }
@@ -238,7 +231,8 @@ impl FightGame {
         }
         for (player_idx, stunning_velo) in player_stunnings {
             if let Some(player) = self.players.get_mut(player_idx) {
-                player.stunned_end_time = Instant::now() + Duration::from_millis(STUNNING_TIME);
+                player.stunned_end_time =
+                    Instant::now() + Duration::from_millis(FIGHTGAME_STUNNING_TIME);
                 player.stunning_velo = stunning_velo;
             }
         }
@@ -260,7 +254,7 @@ impl FightGame {
                 if player.state == PlayerState::Dash || player.state == PlayerState::Stunned {
                     continue;
                 }
-                if rect_shifted(player.colision_box_arrow, player.pos.as_point())
+                if rect_shifted(player.colision_box, player.pos.as_point())
                     .has_intersection(rect_shifted(arrow.colision_box, arrow.pos.as_point()))
                 {
                     player_stunnings.push((
@@ -276,7 +270,8 @@ impl FightGame {
         }
         for (player_idx, stunning_velo) in player_stunnings {
             if let Some(player) = self.players.get_mut(player_idx) {
-                player.stunned_end_time = Instant::now() + Duration::from_millis(STUNNING_TIME);
+                player.stunned_end_time =
+                    Instant::now() + Duration::from_millis(FIGHTGAME_STUNNING_TIME);
                 player.stunning_velo = stunning_velo;
             }
         }
@@ -352,20 +347,14 @@ impl FightGame {
         // RuleTime
         canvas.set_draw_color(Color::BLUE);
         canvas
-            .fill_rect(get_ruletime_rect(
-                0,
-                0,
-                self.ruletime_blue,
-                RULETIME_RECT_HEIGHT,
-            ))
+            .fill_rect(get_ruletime_rect(0, 0, self.ruletime_blue))
             .unwrap();
         canvas.set_draw_color(Color::RED);
         canvas
             .fill_rect(get_ruletime_rect(
                 0,
-                RULETIME_RECT_HEIGHT as i32,
+                SCORE_RECT_HEIGHT as i32,
                 self.ruletime_red,
-                RULETIME_RECT_HEIGHT,
             ))
             .unwrap();
 
@@ -422,9 +411,9 @@ impl FightGame {
     }
 }
 
-fn get_ruletime_rect(x: i32, y: i32, rule_ms: u32, h: u32) -> Rect {
+fn get_ruletime_rect(x: i32, y: i32, rule_ms: u32) -> Rect {
     let w = VIRTUAL_WIDHT as f32 * 1. / GAME_TIME_MS as f32 * rule_ms as f32;
-    Rect::new(x, y, w as u32, h)
+    Rect::new(x, y, w as u32, SCORE_RECT_HEIGHT)
 }
 
 fn fix_player_position(player: &mut Player, ground_boxes: &[Rect]) {

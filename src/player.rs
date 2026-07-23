@@ -9,8 +9,10 @@ use sdl3::{
 
 use crate::{
     ARROW_SPAWN_DISTANCE, Arrow, DASH_GETS_DANGEROUS_TIME, DASH_SPEED, DASH_TIME, DEBUGMODE,
-    INPUT_AXIS_THRESHOLD, JUMP_SPEED, STAMINA_RELOAD_PER_FRAME, STUNNING_SPEED_ARROW_HIT,
-    STUNNING_TIME, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    FIGHTGAME_PLAYER_SPEED, FIGHTGAME_STUNNING_TIME, INPUT_AXIS_THRESHOLD, JUMP_MAX_HOLD,
+    JUMPGAME_GROUND_Y, JUMPGAME_HIGHT_GRAVITY, JUMPGAME_JUMP_FORCE, JUMPGAME_LOW_GRAVITY,
+    JUMPGAME_PLAYER_SPEED, METER_RUN_SPEED, STAMINA_RELOAD_PER_FRAME, STUNNING_MOVE_FACTOR, Team,
+    Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, lerp, rect_shifted},
@@ -23,12 +25,13 @@ pub struct Player {
     pub pos_old: Vec2,
     pub velo: Vec2,
     pub fliped: bool,
-    pub colision_box_arrow: Rect,
+    pub colision_box: Rect,
     pub colision_box_dash: Rect,
     pub ase_player: AsePlayer,
     pub acceleration: f32,
-    pub speed: f32,
+    // pub speed: f32,
     pub is_aiming: bool,
+    pub is_jumping: bool,
     pub aim_direction: Vec2,
     pub stunned_end_time: Instant,
     pub stunning_velo: Vec2,
@@ -37,7 +40,7 @@ pub struct Player {
     pub last_ground: Option<Rect>,
     pub stamina: f32,
     pub state: PlayerState,
-    pub jump_pressed_start: Instant,
+    pub jump_start_time: Instant,
 }
 
 impl Player {
@@ -49,12 +52,13 @@ impl Player {
             pos_old: pos,
             velo: Vec2::zero(),
             fliped: false,
-            colision_box_arrow: Rect::new(-4, -14, 8, 14),
+            colision_box: Rect::new(-4, -14, 8, 14),
             colision_box_dash: Rect::new(-7, -14, 14, 14),
             ase_player: AsePlayer::from_json("assets/player.json"),
             acceleration: 0.1,
-            speed: 1.0,
+            // speed: FIGHTGAME_PLAYER_SPEED,
             is_aiming: false,
+            is_jumping: false,
             aim_direction: Vec2::zero(),
             stunned_end_time: Instant::now(),
             stunning_velo: Vec2::zero(),
@@ -63,7 +67,7 @@ impl Player {
             last_ground: None,
             stamina: 3.,
             state: PlayerState::Idle,
-            jump_pressed_start: Instant::now(),
+            jump_start_time: Instant::now(),
         };
         player
     }
@@ -77,9 +81,10 @@ impl Player {
         let horizontal_aiming = input.axis(PlayerId(gamepad_id), gilrs::Axis::RightStickX);
         let vertical_aiming = -input.axis(PlayerId(gamepad_id), gilrs::Axis::RightStickY);
 
-        self.velo = self
-            .velo
-            .lerp(input_move_direction * self.speed, self.acceleration);
+        self.velo = self.velo.lerp(
+            input_move_direction * FIGHTGAME_PLAYER_SPEED,
+            self.acceleration,
+        );
 
         let aiming_input = Vec2::new(horizontal_aiming, vertical_aiming).normalized();
         self.is_aiming = aiming_input != Vec2::zero();
@@ -205,7 +210,7 @@ impl Player {
                     .stunned_end_time
                     .saturating_duration_since(Instant::now())
                     .as_millis() as f32;
-                let stunning_progress = 1. - (1. / STUNNING_TIME as f32 * remaining_time);
+                let stunning_progress = 1. - (1. / FIGHTGAME_STUNNING_TIME as f32 * remaining_time);
                 println!("{}", stunning_progress);
                 self.stunning_velo.lerp(Vec2::zero(), stunning_progress);
 
@@ -220,72 +225,60 @@ impl Player {
         out
     }
 
-    pub fn update_jumper(
-        &mut self,
-        input: &ArcadeInput,
-        gamepad_id: usize,
-        gravity: f32,
-        ground_y: u32,
-    ) {
+    pub fn update_jumper(&mut self, input: &ArcadeInput, gamepad_id: usize) {
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
-        let input_move_direction = Vec2::new(horizontal_movement, 0.).normalized();
-
-        self.velo = self
-            .velo
-            .lerp(input_move_direction * self.speed, self.acceleration);
 
         match self.state {
             PlayerState::Move => {
                 self.ase_player.play_tag("move", true);
 
-                // Stamina
-                self.stamina_reload(0.6);
-
-                // Velo
-                self.pos_old = self.pos;
+                self.velo.x = lerp(
+                    self.velo.x,
+                    horizontal_movement * JUMPGAME_PLAYER_SPEED,
+                    self.acceleration,
+                );
                 self.pos = self.pos + self.velo;
-                self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
-                self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
 
                 // -> Jump
-                let is_grounded = self.pos.y >= ground_y as f32;
+                let is_grounded = self.pos.y >= JUMPGAME_GROUND_Y as f32;
                 let is_input_jump = input.button_pressed(PlayerId(gamepad_id), Button::South);
 
-                const JUMP_HOLDABLE: Duration = Duration::from_millis(200);
-                if is_grounded {
-                    if is_input_jump {
-                        self.velo.y = -JUMP_SPEED;
-                        self.jump_pressed_start = Instant::now();
-                    } else {
-                        self.pos.y = ground_y as f32;
-                    }
+                if is_input_jump && is_grounded {
+                    self.velo.y = -JUMPGAME_JUMP_FORCE;
+                    self.is_jumping = true;
+                    self.jump_start_time = Instant::now();
+                }
+
+                let gravity = if is_input_jump && self.jump_start_time.elapsed() < JUMP_MAX_HOLD {
+                    JUMPGAME_LOW_GRAVITY
                 } else {
-                    if !(is_input_jump && self.jump_pressed_start.elapsed() < JUMP_HOLDABLE) {
-                        self.velo.y += gravity;
-                    }
+                    JUMPGAME_HIGHT_GRAVITY
+                };
+                self.velo.y += gravity;
+
+                // -> Stunned
+                if self.stunned_end_time >= Instant::now() {
+                    self.state = PlayerState::Stunned;
                 }
             }
             PlayerState::Stunned => {
                 self.ase_player.play_tag("stunned", true);
 
                 // Velo
-                self.pos = self.pos + self.stunning_velo;
+                self.velo.x = -METER_RUN_SPEED * STUNNING_MOVE_FACTOR;
+                self.velo.y += JUMPGAME_HIGHT_GRAVITY;
+                self.pos = self.pos + self.velo;
 
-                let remaining_time = self
-                    .stunned_end_time
-                    .saturating_duration_since(Instant::now())
-                    .as_millis() as f32;
-                let stunning_progress = 1. - (1. / STUNNING_TIME as f32 * remaining_time);
-                println!("{}", stunning_progress);
-                self.stunning_velo.lerp(Vec2::zero(), stunning_progress);
-
-                // -> Idle
+                // -> Move
                 if self.stunned_end_time < Instant::now() {
-                    self.state = PlayerState::Idle;
+                    self.state = PlayerState::Move;
                 }
             }
             _ => (),
         }
+
+        self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
+        self.pos.y = self.pos.y.clamp(0., JUMPGAME_GROUND_Y as f32);
     }
 
     fn stamina_reload(&mut self, relaxation_factor: f32) {
@@ -300,26 +293,27 @@ impl Player {
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         // Teamfarbe
-        match self.team {
-            Team::Blue => {
-                canvas.set_draw_color(Color::BLUE);
-            }
-            Team::Red => {
-                canvas.set_draw_color(Color::RED);
-            }
-            Team::Yellow => {
-                canvas.set_draw_color(Color::YELLOW);
-            }
-            Team::Green => {
-                canvas.set_draw_color(Color::GREEN);
-            }
-            // Team::White => {
-            //     canvas.set_draw_color(Color::WHITE);
-            // }
-            Team::None => {
-                canvas.set_draw_color(Color::WHITE);
-            }
-        }
+        canvas.set_draw_color(self.team.color());
+        // match self.team {
+        //     Team::Blue => {
+        //         canvas.set_draw_color(Color::BLUE);
+        //     }
+        //     Team::Red => {
+        //         canvas.set_draw_color(Color::RED);
+        //     }
+        //     Team::Yellow => {
+        //         canvas.set_draw_color(Color::YELLOW);
+        //     }
+        //     Team::Green => {
+        //         canvas.set_draw_color(Color::GREEN);
+        //     }
+        //     // Team::White => {
+        //     //     canvas.set_draw_color(Color::WHITE);
+        //     // }
+        //     Team::None => {
+        //         canvas.set_draw_color(Color::WHITE);
+        //     }
+        // }
 
         // Position
         // canvas.draw_point(self.pos.as_point()).unwrap();
@@ -361,7 +355,7 @@ impl Player {
         if DEBUGMODE {
             // Collision Box
             canvas
-                .draw_rect(rect_shifted(self.colision_box_arrow, self.pos.as_point()))
+                .draw_rect(rect_shifted(self.colision_box, self.pos.as_point()))
                 .unwrap();
             canvas
                 .draw_rect(rect_shifted(self.colision_box_dash, self.pos.as_point()))
