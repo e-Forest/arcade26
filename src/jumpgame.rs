@@ -201,6 +201,14 @@ impl JumpGame {
             player.draw(canvas, textures);
         }
 
+        // GameTime
+        self.game_timer.draw(
+            canvas,
+            Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
+            Color::GREEN,
+            Color::RED,
+        );
+
         // Score
         for (i, player) in self
             .players
@@ -228,7 +236,7 @@ impl JumpGame {
         match self.state {
             GameState::Intro => {
                 // - Regeln Anzeigen -
-                canvas.copy(&textures.fightgame_rules, None, None).unwrap();
+                canvas.copy(&textures.jumpgame_rules, None, None).unwrap();
                 // - Timer Anzeigen -
                 self.into_timer.draw(
                     canvas,
