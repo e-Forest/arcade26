@@ -296,7 +296,11 @@ impl Player {
 
         match self.state {
             PlayerState::Idle => {
-                self.ase_player.play_tag("idle", true);
+                if self.is_jumping {
+                    self.ase_player.play_tag("jump", true);
+                } else {
+                    self.ase_player.play_tag("idle", true);
+                }
 
                 // Velo
                 self.velo.x = lerp(
@@ -314,7 +318,11 @@ impl Player {
                 }
             }
             PlayerState::Move => {
-                self.ase_player.play_tag("move", true);
+                if self.is_jumping {
+                    self.ase_player.play_tag("jump", true);
+                } else {
+                    self.ase_player.play_tag("move", true);
+                }
 
                 // Velo
                 self.velo.x = lerp(
@@ -419,15 +427,15 @@ impl Player {
         Instant::now() > dash_start + Duration::from_millis(DASH_GETS_DANGEROUS_TIME)
     }
 
-    pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
+    pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures, ground_y: Option<i32>) {
         // Teamfarbe
         canvas.set_draw_color(self.team.color());
 
         // Position
-        // canvas.draw_point(self.pos.as_point()).unwrap();
         let p = self.pos.as_point();
-        canvas.draw_rect(Rect::new(p.x - 4, p.y - 1, 8, 2)).unwrap();
-        canvas.draw_rect(Rect::new(p.x - 2, p.y - 2, 4, 4)).unwrap();
+        let y = if let Some(gy) = ground_y { gy } else { p.y };
+        canvas.draw_rect(Rect::new(p.x - 4, y - 1, 8, 2)).unwrap();
+        canvas.draw_rect(Rect::new(p.x - 2, y - 2, 4, 4)).unwrap();
 
         // Aim
         if self.is_aiming {

@@ -184,7 +184,7 @@ impl<'a> OverWorld {
         canvas.copy(background_tx, None, None).unwrap();
 
         for player in &self.players {
-            player.draw(canvas, textures)
+            player.draw(canvas, textures, None)
         }
 
         // - Areas anzeigen -

@@ -323,7 +323,7 @@ impl FightGame {
             if player.team == Team::None {
                 continue;
             }
-            player.draw(canvas, textures);
+            player.draw(canvas, textures, None);
         }
 
         // Arrows

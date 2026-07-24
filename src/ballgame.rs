@@ -73,8 +73,6 @@ impl BallGame {
             players.push(p);
         }
 
-        // let mut ball = Ball::new(Vec2::new(VIRTUAL_WIDHT as f32 - 34., 30.));
-        // ball.velo.y = 2.;
         let ball = Ball::new(Vec2::new(
             VIRTUAL_WIDHT as f32 / 2.,
             VIRTUAL_HEIGHT as f32 * 0.2,
@@ -241,7 +239,7 @@ impl BallGame {
             if player.team == Team::None {
                 continue;
             }
-            player.draw(canvas, textures);
+            player.draw(canvas, textures, Some(BALLGAME_GROUND_Y as i32));
         }
 
         // Score

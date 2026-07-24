@@ -199,7 +199,7 @@ impl JumpGame {
             if player.team == Team::None {
                 continue;
             }
-            player.draw(canvas, textures);
+            player.draw(canvas, textures, Some(JUMPGAME_GROUND_Y as i32));
         }
 
         // GameTime
