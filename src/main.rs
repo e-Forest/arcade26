@@ -82,9 +82,10 @@ pub const JUMPGAME_STUNNING_TIME: u64 = 800;
 pub const STUNNING_MOVE_FACTOR: f32 = 0.85;
 pub const JUMPGAME_PLAYER_SPEED: f32 = 2.0;
 pub const JUMPGAME_GROUND_Y: u32 = 120;
-pub const JUMPGAME_LOW_GRAVITY: f32 = 0.4;
-pub const JUMPGAME_HIGHT_GRAVITY: f32 = 0.8;
-pub const JUMPGAME_JUMP_FORCE: f32 = 6.5;
+
+pub const JUMPGAME_JUMP_FORCE: f32 = 5.;
+pub const JUMPGAME_LOW_GRAVITY: f32 = 0.2;
+pub const JUMPGAME_HIGHT_GRAVITY: f32 = 0.4;
 // pub const JUMPGAME_LOW_GRAVITY: f32 = 0.8;
 // pub const JUMPGAME_HIGHT_GRAVITY: f32 = 1.6;
 // pub const JUMPGAME_JUMP_FORCE: f32 = 10.;
@@ -94,10 +95,11 @@ pub const SCORE_MAX: u32 = (GAME_TIME_MS / FIXED_FPS * VIRTUAL_WIDHT) * 2;
 // - Ballgame -
 pub const BALLGAME_PLAYER_SPEED: f32 = 2.0;
 pub const BALLGAME_GROUND_Y: u32 = 150;
-pub const BALLGAME_JUMP_FORCE: f32 = 5.;
 
+pub const BALLGAME_JUMP_FORCE: f32 = 5.;
 pub const BALLGAME_PLAYER_GRAVITY_LOW: f32 = 0.1;
 pub const BALLGAME_PLAYER_GRAVITY_HIGH: f32 = 0.3;
+
 pub const BALLGAME_PLAYER_DISTANCE_TO_WALLS: f32 = 30.;
 pub const BALLGAME_MAX_STAMINA: f32 = 3.;
 
@@ -161,7 +163,7 @@ pub fn main() {
     let textures = Textures::new(&creator);
 
     let mut current_scene = Scene::OverWorld(OverWorld::new());
-    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Blue, Team::Red]));
+    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,

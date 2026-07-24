@@ -19,7 +19,7 @@ use crate::{
 };
 
 const OBSTICLE_SPAWN_TIME_MS_MIN: u64 = 500;
-const OBSTICLE_SPAWN_TIME_MS_MAX: u64 = 4000;
+const OBSTICLE_SPAWN_TIME_MS_MAX: u64 = 3000;
 
 pub struct JumpGame {
     into_timer: Timer,

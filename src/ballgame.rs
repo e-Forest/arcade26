@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use rand::seq::SliceRandom;
 use sdl3::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
@@ -159,7 +160,7 @@ impl BallGame {
 
         if self.ball.pos.x < BALLGAME_BALL_X_DISTANCE_TO_WALLS {
             if !is_in_red_ring {
-                // self.ball.pos.x = BALLGAME_BALL_X_DISTANCE_TO_WALLS;
+                self.ball.pos.x = BALLGAME_BALL_X_DISTANCE_TO_WALLS;
                 self.ball.velo.x = BALLGAME_BALL_WALL_BOUCE_FORCE;
                 if self.ball.is_inring_old {
                     self.ball.velo.y = -self.ball.velo.y;
@@ -168,7 +169,7 @@ impl BallGame {
         }
         if self.ball.pos.x > VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_WALLS {
             if !is_in_blue_ring {
-                // self.ball.pos.x = VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_WALLS;
+                self.ball.pos.x = VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_WALLS;
                 self.ball.velo.x = -BALLGAME_BALL_WALL_BOUCE_FORCE;
                 if self.ball.is_inring_old {
                     self.ball.velo.y = -self.ball.velo.y;
@@ -181,12 +182,16 @@ impl BallGame {
 
     fn change_to_nextround(&mut self) {
         let add_v2;
+        let is_in_red_ring = self.ring_area_red.contains_point(self.ball.pos.as_point());
+        let is_in_blue_ring = self.ring_area_blue.contains_point(self.ball.pos.as_point());
 
-        if self.ball.pos.x < BALLGAME_BALL_X_DISTANCE_TO_SCORE {
+        if self.ball.pos.x < BALLGAME_BALL_X_DISTANCE_TO_SCORE && is_in_red_ring {
             add_v2 = Vec2::new(-4., 0.);
             self.score_blue += 1;
             self.last_scored_team = Team::Blue;
-        } else if self.ball.pos.x > VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_SCORE {
+        } else if self.ball.pos.x > VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_SCORE
+            && is_in_blue_ring
+        {
             add_v2 = Vec2::new(4., 0.);
             self.score_red += 1;
             self.last_scored_team = Team::Red;
@@ -207,12 +212,22 @@ impl BallGame {
     }
 
     fn handle_players_to_ball(&mut self) {
-        // next: immernoch bisschen komische physic
         if self.ball.last_collision.elapsed() < BALLGAME_BALL_TIME_BETWEEN_COLLISIONS {
             return;
         }
 
-        for player in self.players.iter() {
+        let mut player_indexes = Vec::new();
+        for i in 0..self.players.len() {
+            player_indexes.push(i);
+        }
+        let mut rng = rand::rng();
+        player_indexes.shuffle(&mut rng);
+
+        // for player in self.players.iter() {
+        for i in player_indexes {
+            let Some(player) = self.players.get(i) else {
+                continue;
+            };
             let player_box = rect_shifted(player.colision_box_small, player.pos.as_point());
             let ball_box = rect_shifted(self.ball.collision_box, self.ball.pos.as_point());
             let player_center = Vec2::from_point(player_box.center());
