@@ -18,8 +18,8 @@ use crate::{
     time::Timer,
 };
 
-const OBSTICLE_SPAWN_TIME_MS_MIN: u64 = 2000;
-const OBSTICLE_SPAWN_TIME_MS_MAX: u64 = 3000;
+const OBSTICLE_SPAWN_TIME_MS_MIN: u64 = 500;
+const OBSTICLE_SPAWN_TIME_MS_MAX: u64 = 4000;
 
 pub struct JumpGame {
     into_timer: Timer,
@@ -100,6 +100,7 @@ impl JumpGame {
                 continue;
             }
             if let Some(score) = self.score.get_mut(gamepad_id) {
+                println!("{}", score);
                 *score += player.pos.x as u32;
                 let score_rect =
                     get_score_rect(0, gamepad_id as i32 * SCORE_RECT_HEIGHT as i32, *score);
@@ -120,7 +121,7 @@ impl JumpGame {
 
     fn handle_players_to_obsitcles(&mut self) {
         for player in self.players.iter_mut() {
-            let player_box = rect_shifted(player.colision_box, player.pos.as_point());
+            let player_box = rect_shifted(player.colision_box_small, player.pos.as_point());
             for obsticle in self.obsticles.iter() {
                 let obsticle_box = rect_shifted(obsticle.collision_box, obsticle.pos.as_point());
                 if player_box.has_intersection(obsticle_box) {
@@ -150,7 +151,7 @@ impl JumpGame {
 
             let obsticle = Obsticle::new(
                 obsticle_enum,
-                Vec2::new(VIRTUAL_WIDHT as f32, JUMPGAME_GROUND_Y as f32),
+                Vec2::new(VIRTUAL_WIDHT as f32 + 64., JUMPGAME_GROUND_Y as f32),
             );
             self.obsticles.push(obsticle);
         }
@@ -347,6 +348,6 @@ impl Obsticle {
 }
 
 fn get_score_rect(x: i32, y: i32, score: u32) -> Rect {
-    let w = VIRTUAL_WIDHT as f32 * (1. / SCORE_MAX as f32 * score as f32);
+    let w = VIRTUAL_WIDHT as f32 * (1. / SCORE_MAX as f32) * score as f32;
     Rect::new(x, y, w as u32, SCORE_RECT_HEIGHT)
 }

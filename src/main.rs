@@ -41,7 +41,8 @@ use time::*;
 pub mod player;
 use player::*;
 
-pub const DEBUGMODE: bool = true;
+pub const DEBUGMODE: bool = false;
+pub const FIXED_FPS: u32 = 60;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
 pub const VIRTUAL_HEIGHT: u32 = 180; // 1080/6
@@ -52,9 +53,11 @@ pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 
 pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
+// pub const GAME_TIME_MS: u32 = 5000;
 pub const INTRO_TIME_MS: u32 = 3000;
 pub const OUTRO_TIME_MS: u32 = 5000;
 pub const START_GAME_TIME_MS: u32 = 3000;
+pub const NEXTROUND_TIME_MS: u32 = 2000;
 
 pub const SCORE_RECT_HEIGHT: u32 = 3;
 
@@ -65,30 +68,59 @@ pub const FIGHTGAME_STUNNING_TIME: u64 = 300;
 pub const STUNNING_SPEED_ARROW_HIT: f32 = 1.;
 pub const STUNNING_SPEED_DASH_HIT: f32 = 1.6;
 
-pub const DASH_TIME: u64 = 350;
-pub const DASH_SPEED: f32 = 1.8;
+pub const FIGHTGAME_DASH_TIME: u64 = 350;
+pub const FIGHTGAME_DASH_SPEED: f32 = 1.8;
 pub const DASH_GETS_DANGEROUS_TIME: u64 = 150;
 
 pub const ARROW_LIFETIME: Duration = Duration::from_millis(600);
 pub const ARROW_SPEED: f32 = 3.;
-pub const ARROW_SPAWN_DISTANCE: f32 = 10.;
+pub const ARROW_SPAWN_DISTANCE: f32 = 8.;
+pub const ARROW_SPAWN_OFFSET_Y: f32 = 6.;
 
 // - Jumpgame -
-pub const JUMPGAME_STUNNING_TIME: u64 = 600;
+pub const JUMPGAME_STUNNING_TIME: u64 = 800;
 pub const STUNNING_MOVE_FACTOR: f32 = 0.85;
 pub const JUMPGAME_PLAYER_SPEED: f32 = 2.0;
 pub const JUMPGAME_GROUND_Y: u32 = 120;
-pub const JUMPGAME_LOW_GRAVITY: f32 = 1.;
-pub const JUMPGAME_HIGHT_GRAVITY: f32 = 2.;
-pub const JUMPGAME_JUMP_FORCE: f32 = 12.;
+pub const JUMPGAME_LOW_GRAVITY: f32 = 0.8;
+pub const JUMPGAME_HIGHT_GRAVITY: f32 = 1.6;
+pub const JUMPGAME_JUMP_FORCE: f32 = 10.;
 pub const JUMP_MAX_HOLD: Duration = Duration::from_millis(200);
-pub const SCORE_MAX: u32 = (GAME_TIME_MS / 60) * VIRTUAL_WIDHT;
+pub const SCORE_MAX: u32 = (GAME_TIME_MS / FIXED_FPS * VIRTUAL_WIDHT) * 2;
+
+// - Ballgame -
+pub const BALLGAME_PLAYER_SPEED: f32 = 2.0;
+pub const BALLGAME_GROUND_Y: u32 = 150;
+pub const BALLGAME_JUMP_FORCE: f32 = 5.;
+
+pub const BALLGAME_PLAYER_GRAVITY_LOW: f32 = 0.1;
+pub const BALLGAME_PLAYER_GRAVITY_HIGH: f32 = 0.3;
+pub const BALLGAME_PLAYER_DISTANCE_TO_WALLS: f32 = 30.;
+pub const BALLGAME_MAX_STAMINA: f32 = 3.;
+
+pub const BALLGAME_BALL_GRAVITY_LOW: f32 = 0.1;
+pub const BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY: f32 = 30.;
+pub const BALLGAME_BALL_GRAVITY_HIGH: f32 = 0.2;
+pub const BALLGAME_BALL_XBRAKE: f32 = 0.016;
+pub const BALLGAME_BALL_GROUND_BOUCE_FORCE: f32 = 3.;
+pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 2.;
+pub const BALLGAME_BALL_WALL_BOUCE_FORCE: f32 = 1.;
+pub const BALLGAME_BALL_X_DISTANCE_TO_WALLS: f32 = 42.;
+pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = BALLGAME_BALL_X_DISTANCE_TO_WALLS - 8.;
+pub const BALLGAME_BALL_TIME_BETWEEN_COLLISIONS: Duration = Duration::from_millis(200);
+
+pub const BALLGAME_RING_LOWER_EDGE: f32 = 65.;
+pub const BALLGAME_RING_UPPER_EDGE: f32 = 28.;
+
+pub const BALLGAME_PLAYER2BALL_VELO_FACTOR: f32 = 0.8;
+
+pub const BALLGAME_DASH_TIME: u64 = 200;
+pub const BALLGAME_DASH_SPEED: f32 = 3.8;
 
 pub const PARALAX_FACTOR: i32 = 5;
 pub const METER_RUN_SPEED: f32 = 2.5;
 
 pub fn main() {
-    println!("score-max:{}", SCORE_MAX);
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -126,14 +158,20 @@ pub fn main() {
     let textures = Textures::new(&creator);
 
     let mut current_scene = Scene::OverWorld(OverWorld::new());
-    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![
+    // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
-    //     Team::Yellow,
-    //     Team::Green,
+    //     Team::Blue,
+    //     Team::Red,
+    // ]));
+    // let mut current_scene = Scene::FightGame(FightGame::new(vec![
+    //     Team::Blue,
+    //     Team::Red,
+    //     Team::Blue,
+    //     Team::Red,
     // ]));
 
-    let mut fps_guard = FpsGuard::new(60);
+    let mut fps_guard = FpsGuard::new(FIXED_FPS);
 
     // - Mainloop -
     loop {
@@ -315,6 +353,9 @@ pub struct Textures<'a> {
     pub jumpgame_paralax: Texture<'a>,
     pub fightgame_background: Texture<'a>,
     pub ballgame_background: Texture<'a>,
+    pub scored_blue: Texture<'a>,
+    pub scored_red: Texture<'a>,
+    // pub ballgame_foreground: Texture<'a>,
     pub arrow: Texture<'a>,
     pub platsch: Texture<'a>,
     pub fightgame_rules: Texture<'a>,
@@ -329,12 +370,16 @@ pub struct Textures<'a> {
     pub crate_stack: Texture<'a>,
     pub market_sign: Texture<'a>,
     pub market_cart: Texture<'a>,
+    pub ball: Texture<'a>,
 }
 
 impl<'a> Textures<'a> {
     fn new(creator: &'a TextureCreator<WindowContext>) -> Self {
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            scored_red: creator.load_texture("assets/scored_red.png").unwrap(),
+            scored_blue: creator.load_texture("assets/scored_blue.png").unwrap(),
+            ball: creator.load_texture("assets/ball.png").unwrap(),
             outro_teams_red: creator.load_texture("assets/outro_teams_red.png").unwrap(),
             outro_teams_blue: creator.load_texture("assets/outro_teams_blue.png").unwrap(),
             outro_single_red: creator.load_texture("assets/outro_single_red.png").unwrap(),
@@ -361,6 +406,9 @@ impl<'a> Textures<'a> {
             ballgame_background: creator
                 .load_texture("assets/ballgame_background.png")
                 .unwrap(),
+            // ballgame_foreground: creator
+            //     .load_texture("assets/ballgame_foreground.png")
+            //     .unwrap(),
             arrow: creator.load_texture("assets/arrow.png").unwrap(),
             platsch: creator.load_texture("assets/platsch.png").unwrap(),
             fightgame_rules: creator.load_texture("assets/fightgame_rules.png").unwrap(),

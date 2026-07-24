@@ -99,7 +99,9 @@ impl<'a> OverWorld {
                 }
             } else if is_fair_teams_ballgame && players_at_ballgame + players_at_noplay == 4 {
                 if self.start_game_timer.is_over() {
-                    return SceneMessage::ChangeScene(Scene::BallGame(BallGame::new()));
+                    return SceneMessage::ChangeScene(Scene::BallGame(BallGame::new(
+                        self.get_players_in_team(),
+                    )));
                 }
             } else if is_fair_teams_fightgame && players_at_fightgame + players_at_noplay == 4 {
                 if self.start_game_timer.is_over() {

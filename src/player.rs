@@ -8,11 +8,14 @@ use sdl3::{
 };
 
 use crate::{
-    ARROW_SPAWN_DISTANCE, Arrow, DASH_GETS_DANGEROUS_TIME, DASH_SPEED, DASH_TIME, DEBUGMODE,
-    FIGHTGAME_PLAYER_SPEED, FIGHTGAME_STUNNING_TIME, INPUT_AXIS_THRESHOLD, JUMP_MAX_HOLD,
-    JUMPGAME_GROUND_Y, JUMPGAME_HIGHT_GRAVITY, JUMPGAME_JUMP_FORCE, JUMPGAME_LOW_GRAVITY,
-    JUMPGAME_PLAYER_SPEED, METER_RUN_SPEED, STAMINA_RELOAD_PER_FRAME, STUNNING_MOVE_FACTOR, Team,
-    Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    ARROW_SPAWN_DISTANCE, ARROW_SPAWN_OFFSET_Y, Arrow, BALLGAME_BALL_X_DISTANCE_TO_WALLS,
+    BALLGAME_DASH_SPEED, BALLGAME_DASH_TIME, BALLGAME_GROUND_Y, BALLGAME_JUMP_FORCE,
+    BALLGAME_MAX_STAMINA, BALLGAME_PLAYER_DISTANCE_TO_WALLS, BALLGAME_PLAYER_GRAVITY_HIGH,
+    BALLGAME_PLAYER_GRAVITY_LOW, BALLGAME_PLAYER_SPEED, DASH_GETS_DANGEROUS_TIME, DEBUGMODE,
+    FIGHTGAME_DASH_SPEED, FIGHTGAME_DASH_TIME, FIGHTGAME_PLAYER_SPEED, FIGHTGAME_STUNNING_TIME,
+    INPUT_AXIS_THRESHOLD, JUMP_MAX_HOLD, JUMPGAME_GROUND_Y, JUMPGAME_HIGHT_GRAVITY,
+    JUMPGAME_JUMP_FORCE, JUMPGAME_LOW_GRAVITY, JUMPGAME_PLAYER_SPEED, METER_RUN_SPEED,
+    STAMINA_RELOAD_PER_FRAME, STUNNING_MOVE_FACTOR, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, lerp, rect_shifted},
@@ -25,8 +28,8 @@ pub struct Player {
     pub pos_old: Vec2,
     pub velo: Vec2,
     pub fliped: bool,
-    pub colision_box: Rect,
-    pub colision_box_dash: Rect,
+    pub colision_box_small: Rect,
+    pub colision_box_large: Rect,
     pub ase_player: AsePlayer,
     pub acceleration: f32,
     // pub speed: f32,
@@ -52,8 +55,8 @@ impl Player {
             pos_old: pos,
             velo: Vec2::zero(),
             fliped: false,
-            colision_box: Rect::new(-4, -14, 8, 14),
-            colision_box_dash: Rect::new(-7, -14, 14, 14),
+            colision_box_small: Rect::new(-4, -14, 8, 14),
+            colision_box_large: Rect::new(-7, -14, 14, 14),
             ase_player: AsePlayer::from_json("assets/player.json"),
             acceleration: 0.1,
             // speed: FIGHTGAME_PLAYER_SPEED,
@@ -130,8 +133,8 @@ impl Player {
                 // Velo
                 self.pos_old = self.pos;
                 self.pos = self.pos + self.velo;
-                self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
-                self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
+                // self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
+                // self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
 
                 // -> Stunned
                 if self.stunned_end_time >= Instant::now() {
@@ -143,7 +146,8 @@ impl Player {
                     if self.stamina >= 1. {
                         self.stamina -= 1.;
                         self.dash_direction = input_move_direction.normalized();
-                        self.dash_end_time = Instant::now() + Duration::from_millis(DASH_TIME);
+                        self.dash_end_time =
+                            Instant::now() + Duration::from_millis(FIGHTGAME_DASH_TIME);
                         self.state = PlayerState::Dash;
                     }
                 }
@@ -172,7 +176,9 @@ impl Player {
                 if self.ase_player.just_frame_index(14) {
                     self.stamina -= 1.;
                     let arrow = Arrow::new(
-                        self.pos + self.aim_direction * ARROW_SPAWN_DISTANCE,
+                        self.pos
+                            + Vec2::new(0., -ARROW_SPAWN_OFFSET_Y)
+                            + self.aim_direction * ARROW_SPAWN_DISTANCE,
                         self.aim_direction,
                         self.team,
                     );
@@ -193,7 +199,7 @@ impl Player {
                 self.ase_player.play_tag("dash", true);
 
                 // Velo
-                self.pos = self.pos + self.dash_direction.normalized() * DASH_SPEED;
+                self.pos = self.pos + self.dash_direction.normalized() * FIGHTGAME_DASH_SPEED;
 
                 // -> Idle
                 if self.dash_end_time < Instant::now() {
@@ -241,6 +247,9 @@ impl Player {
 
                 // -> Jump
                 let is_grounded = self.pos.y >= JUMPGAME_GROUND_Y as f32;
+                if is_grounded {
+                    self.is_jumping = false;
+                }
                 let is_input_jump = input.button_pressed(PlayerId(gamepad_id), Button::South);
 
                 if is_input_jump && is_grounded {
@@ -281,45 +290,164 @@ impl Player {
         self.pos.y = self.pos.y.clamp(0., JUMPGAME_GROUND_Y as f32);
     }
 
+    pub fn update_baller(&mut self, input: &ArcadeInput, gamepad_id: usize) {
+        let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
+        let vertical_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickY);
+
+        match self.state {
+            PlayerState::Idle => {
+                self.ase_player.play_tag("idle", true);
+
+                // Velo
+                self.velo.x = lerp(
+                    self.velo.x,
+                    horizontal_movement * BALLGAME_PLAYER_SPEED,
+                    self.acceleration,
+                );
+
+                // Jump
+                self.jumping(input, gamepad_id, horizontal_movement, vertical_movement);
+
+                // -> Move
+                if self.velo.x.abs() > INPUT_AXIS_THRESHOLD {
+                    self.state = PlayerState::Move;
+                }
+            }
+            PlayerState::Move => {
+                self.ase_player.play_tag("move", true);
+
+                // Velo
+                self.velo.x = lerp(
+                    self.velo.x,
+                    horizontal_movement * BALLGAME_PLAYER_SPEED,
+                    self.acceleration,
+                );
+
+                // Jump
+                self.jumping(input, gamepad_id, horizontal_movement, vertical_movement);
+
+                // Flip
+                if self.velo.x > INPUT_AXIS_THRESHOLD {
+                    self.fliped = false;
+                } else if self.velo.x < -INPUT_AXIS_THRESHOLD {
+                    self.fliped = true;
+                }
+
+                // -> Idle
+                if self.velo.x.abs() < INPUT_AXIS_THRESHOLD {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            PlayerState::Dash => {
+                self.ase_player.play_tag("dash", true);
+
+                // Velo
+                self.velo = self.dash_direction.normalized() * BALLGAME_DASH_SPEED;
+
+                // -> Idle
+                if self.dash_end_time < Instant::now() {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            _ => (),
+        }
+
+        self.pos = self.pos + self.velo;
+        self.pos.x = self.pos.x.clamp(
+            BALLGAME_PLAYER_DISTANCE_TO_WALLS,
+            VIRTUAL_WIDHT as f32 - BALLGAME_PLAYER_DISTANCE_TO_WALLS,
+        );
+        self.pos.y = self.pos.y.clamp(0., BALLGAME_GROUND_Y as f32);
+    }
+
+    fn jumping(
+        &mut self,
+        input: &ArcadeInput,
+        gamepad_id: usize,
+        horizontal_movement: f32,
+        vertical_movement: f32,
+    ) {
+        let is_input_jump = input.button_pressed(PlayerId(gamepad_id), Button::South);
+        let is_input_just_jump = input.just_button_pressed(PlayerId(gamepad_id), Button::South);
+
+        // -> Dash
+        self.is_aiming = false;
+        let input_dir = Vec2::new(horizontal_movement, -vertical_movement).normalized();
+        if self.is_jumping && input_dir != Vec2::zero() {
+            if self.stamina >= 1. {
+                self.dash_direction = input_dir;
+                self.is_aiming = true;
+                self.aim_direction = input_dir;
+                if is_input_just_jump {
+                    self.stamina -= 1.;
+                    self.dash_end_time = Instant::now() + Duration::from_millis(BALLGAME_DASH_TIME);
+                    self.state = PlayerState::Dash;
+                }
+            }
+        }
+
+        // -> Jump
+        let is_grounded = self.pos.y >= BALLGAME_GROUND_Y as f32;
+        if is_grounded {
+            self.is_jumping = false;
+        }
+        if is_grounded {
+            self.stamina = BALLGAME_MAX_STAMINA;
+        }
+
+        if is_input_jump && is_grounded {
+            self.velo.y = -BALLGAME_JUMP_FORCE;
+            self.is_jumping = true;
+            self.jump_start_time = Instant::now();
+        }
+
+        let gravity = if is_input_jump && self.jump_start_time.elapsed() < JUMP_MAX_HOLD {
+            BALLGAME_PLAYER_GRAVITY_LOW
+        } else {
+            BALLGAME_PLAYER_GRAVITY_HIGH
+        };
+        self.velo.y += gravity;
+    }
+
     fn stamina_reload(&mut self, relaxation_factor: f32) {
         self.stamina += STAMINA_RELOAD_PER_FRAME * relaxation_factor;
         self.stamina = self.stamina.clamp(0., 3.);
     }
 
     pub fn is_dash_dangerous(&self) -> bool {
-        let dash_start = self.dash_end_time - Duration::from_millis(DASH_TIME);
+        let dash_start = self.dash_end_time - Duration::from_millis(FIGHTGAME_DASH_TIME);
         Instant::now() > dash_start + Duration::from_millis(DASH_GETS_DANGEROUS_TIME)
     }
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         // Teamfarbe
         canvas.set_draw_color(self.team.color());
-        // match self.team {
-        //     Team::Blue => {
-        //         canvas.set_draw_color(Color::BLUE);
-        //     }
-        //     Team::Red => {
-        //         canvas.set_draw_color(Color::RED);
-        //     }
-        //     Team::Yellow => {
-        //         canvas.set_draw_color(Color::YELLOW);
-        //     }
-        //     Team::Green => {
-        //         canvas.set_draw_color(Color::GREEN);
-        //     }
-        //     // Team::White => {
-        //     //     canvas.set_draw_color(Color::WHITE);
-        //     // }
-        //     Team::None => {
-        //         canvas.set_draw_color(Color::WHITE);
-        //     }
-        // }
 
         // Position
         // canvas.draw_point(self.pos.as_point()).unwrap();
         let p = self.pos.as_point();
         canvas.draw_rect(Rect::new(p.x - 4, p.y - 1, 8, 2)).unwrap();
         canvas.draw_rect(Rect::new(p.x - 2, p.y - 2, 4, 4)).unwrap();
+
+        // Aim
+        if self.is_aiming {
+            let marker_size = 16_u32;
+            for i in 0..marker_size {
+                if i >= ARROW_SPAWN_DISTANCE as u32 {
+                    let p = (self.pos + self.aim_direction * (i * 2) as f32)
+                        .as_point()
+                        .offset(0, -ARROW_SPAWN_OFFSET_Y as i32);
+
+                    canvas
+                        .fill_rect(Rect::from_center(
+                            p,
+                            ((marker_size).saturating_sub(i)) / 2,
+                            ((marker_size).saturating_sub(i)) / 2,
+                        ))
+                        .unwrap();
+                }
+            }
+        }
 
         // Image
         self.ase_player.draw_current_frame(
@@ -329,18 +457,6 @@ impl Player {
             AnchorPosition::BottomCenter,
             self.fliped,
         );
-
-        // Aim
-        if self.is_aiming {
-            for i in 0..12 {
-                canvas
-                    .draw_point(
-                        (self.pos + self.aim_direction * ((1 + i) as f32 * ARROW_SPAWN_DISTANCE))
-                            .as_point(),
-                    )
-                    .unwrap();
-            }
-        }
 
         // Stamina
         for i in 0..self.stamina as i32 {
@@ -355,10 +471,10 @@ impl Player {
         if DEBUGMODE {
             // Collision Box
             canvas
-                .draw_rect(rect_shifted(self.colision_box, self.pos.as_point()))
+                .draw_rect(rect_shifted(self.colision_box_small, self.pos.as_point()))
                 .unwrap();
             canvas
-                .draw_rect(rect_shifted(self.colision_box_dash, self.pos.as_point()))
+                .draw_rect(rect_shifted(self.colision_box_large, self.pos.as_point()))
                 .unwrap();
         }
     }

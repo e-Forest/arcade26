@@ -203,12 +203,12 @@ impl FightGame {
                 continue;
             }
             if player.state == PlayerState::Dash {
-                let box1 = rect_shifted(player.colision_box_dash, player.pos.as_point());
+                let box1 = rect_shifted(player.colision_box_large, player.pos.as_point());
                 for (player2_idx, player2) in self.players.iter().enumerate() {
                     if player_idx == player2_idx {
                         continue;
                     }
-                    let box2 = rect_shifted(player2.colision_box, player2.pos.as_point());
+                    let box2 = rect_shifted(player2.colision_box_small, player2.pos.as_point());
                     if box1.has_intersection(box2) == false {
                         continue;
                     }
@@ -254,7 +254,7 @@ impl FightGame {
                 if player.state == PlayerState::Dash || player.state == PlayerState::Stunned {
                     continue;
                 }
-                if rect_shifted(player.colision_box, player.pos.as_point())
+                if rect_shifted(player.colision_box_small, player.pos.as_point())
                     .has_intersection(rect_shifted(arrow.colision_box, arrow.pos.as_point()))
                 {
                     player_stunnings.push((
