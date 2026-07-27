@@ -15,7 +15,7 @@ use crate::{
     arcadeinput::ArcadeInput,
     math::{Vec2, lerp, rect_shifted},
     overworld::OverWorld,
-    player::{Player, PlayerId, PlayerState},
+    player::{Player, PlayerId, PlayerState, is_only_one_team_in_game},
     time::Timer,
 };
 
@@ -114,7 +114,13 @@ impl BallGame {
                 // -> NextRound
                 self.change_to_nextround();
 
-                // -> Outro
+                // -> Outro (giveup)
+                if is_only_one_team_in_game(&self.players) {
+                    self.outro_timer.restart();
+                    self.state = GameState::Outro;
+                }
+
+                // -> Outro (timeout)
                 if self.game_timer.is_over() {
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
@@ -340,8 +346,18 @@ impl BallGame {
                 // - Gewinner Anzeigen -
                 if self.score_blue > self.score_red {
                     canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
-                } else {
+                } else if self.score_blue < self.score_red {
                     canvas.copy(&textures.outro_teams_red, None, None).unwrap();
+                } else {
+                    match self.last_scored_team {
+                        Team::Blue => {
+                            canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
+                        }
+                        Team::Red => {
+                            canvas.copy(&textures.outro_teams_red, None, None).unwrap();
+                        }
+                        _ => (),
+                    }
                 }
             }
         }
@@ -404,6 +420,11 @@ impl Ball {
         };
         self.velo.y += gravity;
         self.velo.x = lerp(self.velo.x, 0., BALLGAME_BALL_XBRAKE);
+        // if self.velo.x > 1. {
+        //     self.velo.x -= BALLGAME_BALL_XBRAKE;
+        // } else if self.velo.x < 1. {
+        //     self.velo.x += BALLGAME_BALL_XBRAKE;
+        // }
         self.pos = self.pos + self.velo;
     }
 

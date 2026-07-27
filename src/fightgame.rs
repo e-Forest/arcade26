@@ -15,7 +15,7 @@ use crate::{
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, middle_direction, rect_shifted},
     overworld::OverWorld,
-    player::{PlayerMessage, PlayerState},
+    player::{PlayerMessage, PlayerState, is_only_one_team_in_game},
     time::Timer,
 };
 
@@ -102,7 +102,13 @@ impl FightGame {
                 self.handle_players_to_groundboxes();
                 self.handle_players_to_rulearea(delta_ms);
 
-                // -> Outro
+                // -> Outro (giveup)
+                if is_only_one_team_in_game(&self.players) {
+                    self.outro_timer.restart();
+                    self.state = GameState::Outro;
+                }
+
+                // -> Outro (timeout)
                 if self.game_timer.is_over() {
                     self.outro_timer.restart();
                     self.state = GameState::Outro;

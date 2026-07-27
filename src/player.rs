@@ -13,12 +13,14 @@ use crate::{
     BALLGAME_MAX_STAMINA, BALLGAME_PLAYER_DISTANCE_TO_WALLS, BALLGAME_PLAYER_GRAVITY_HIGH,
     BALLGAME_PLAYER_GRAVITY_LOW, BALLGAME_PLAYER_SPEED, DASH_GETS_DANGEROUS_TIME, DEBUGMODE,
     FIGHTGAME_DASH_SPEED, FIGHTGAME_DASH_TIME, FIGHTGAME_PLAYER_SPEED, FIGHTGAME_STUNNING_TIME,
-    INPUT_AXIS_THRESHOLD, JUMP_MAX_HOLD, JUMPGAME_GROUND_Y, JUMPGAME_HIGHT_GRAVITY,
-    JUMPGAME_JUMP_FORCE, JUMPGAME_LOW_GRAVITY, JUMPGAME_PLAYER_SPEED, METER_RUN_SPEED,
-    STAMINA_RELOAD_PER_FRAME, STUNNING_MOVE_FACTOR, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    GIVE_UP_TIME_MS, INPUT_AXIS_THRESHOLD, JUMP_MAX_HOLD, JUMPGAME_GROUND_Y,
+    JUMPGAME_HIGHT_GRAVITY, JUMPGAME_JUMP_FORCE, JUMPGAME_LOW_GRAVITY, JUMPGAME_PLAYER_SPEED,
+    METER_RUN_SPEED, STAMINA_RELOAD_PER_FRAME, STUNNING_MOVE_FACTOR, Team, Textures,
+    VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, lerp, rect_shifted},
+    time::Timer,
 };
 
 pub struct Player {
@@ -32,7 +34,6 @@ pub struct Player {
     pub colision_box_large: Rect,
     pub ase_player: AsePlayer,
     pub acceleration: f32,
-    // pub speed: f32,
     pub is_aiming: bool,
     pub is_jumping: bool,
     pub aim_direction: Vec2,
@@ -44,6 +45,8 @@ pub struct Player {
     pub stamina: f32,
     pub state: PlayerState,
     pub jump_start_time: Instant,
+    pub is_upgiving: bool,
+    pub give_up_timer: Timer,
 }
 
 impl Player {
@@ -59,7 +62,6 @@ impl Player {
             colision_box_large: Rect::new(-7, -14, 14, 14),
             ase_player: AsePlayer::from_json("assets/player.json"),
             acceleration: 0.1,
-            // speed: FIGHTGAME_PLAYER_SPEED,
             is_aiming: false,
             is_jumping: false,
             aim_direction: Vec2::zero(),
@@ -71,6 +73,8 @@ impl Player {
             stamina: 3.,
             state: PlayerState::Idle,
             jump_start_time: Instant::now(),
+            is_upgiving: false,
+            give_up_timer: Timer::new(GIVE_UP_TIME_MS),
         };
         player
     }
@@ -94,6 +98,8 @@ impl Player {
         if self.is_aiming {
             self.aim_direction = aiming_input;
         }
+
+        self.give_up(input, gamepad_id);
 
         match self.state {
             PlayerState::Idle => {
@@ -133,8 +139,6 @@ impl Player {
                 // Velo
                 self.pos_old = self.pos;
                 self.pos = self.pos + self.velo;
-                // self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
-                // self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
 
                 // -> Stunned
                 if self.stunned_end_time >= Instant::now() {
@@ -217,7 +221,6 @@ impl Player {
                     .saturating_duration_since(Instant::now())
                     .as_millis() as f32;
                 let stunning_progress = 1. - (1. / FIGHTGAME_STUNNING_TIME as f32 * remaining_time);
-                println!("{}", stunning_progress);
                 self.stunning_velo.lerp(Vec2::zero(), stunning_progress);
 
                 // -> Idle
@@ -231,8 +234,25 @@ impl Player {
         out
     }
 
+    fn give_up(&mut self, input: &ArcadeInput, gamepad_id: usize) {
+        // - Give Up -
+        if input.button_pressed(PlayerId(gamepad_id), Button::North) {
+            if self.is_upgiving == false {
+                self.give_up_timer.restart();
+                self.is_upgiving = true;
+            }
+            if self.give_up_timer.is_over() {
+                self.team = Team::None;
+            }
+        } else {
+            self.is_upgiving = false;
+        }
+    }
+
     pub fn update_jumper(&mut self, input: &ArcadeInput, gamepad_id: usize) {
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
+
+        self.give_up(input, gamepad_id);
 
         match self.state {
             PlayerState::Move => {
@@ -293,6 +313,8 @@ impl Player {
     pub fn update_baller(&mut self, input: &ArcadeInput, gamepad_id: usize) {
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
         let vertical_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickY);
+
+        self.give_up(input, gamepad_id);
 
         match self.state {
             PlayerState::Idle => {
@@ -476,6 +498,16 @@ impl Player {
                 .unwrap();
         }
 
+        // Give Up Timer
+        if self.is_upgiving {
+            self.give_up_timer.draw(
+                canvas,
+                Rect::from_center(self.pos.as_point().offset(0, -8), 16, 16),
+                Color::RED,
+                Color::GREEN,
+            );
+        }
+
         if DEBUGMODE {
             // Collision Box
             canvas
@@ -487,17 +519,6 @@ impl Player {
         }
     }
 }
-
-// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// pub enum Skill {
-//     Idle,
-//     VerticalMove,
-//     HorizontalMove,
-//     Shoot,
-//     Dash,
-//     DoubleJump,
-//     Jump,
-// }
 
 pub enum PlayerMessage {
     ShootArrow(Arrow),
@@ -515,4 +536,13 @@ pub enum PlayerState {
     Dash,
     Stunned,
     Jump,
+}
+
+pub fn is_only_one_team_in_game(players: &Vec<Player>) -> bool {
+    let mut teams_in_game: Vec<Team> = players.iter().map(|x| x.team).collect();
+    teams_in_game.retain(|xy| *xy != Team::None);
+    teams_in_game.sort();
+    teams_in_game.dedup();
+
+    teams_in_game.len() <= 1
 }

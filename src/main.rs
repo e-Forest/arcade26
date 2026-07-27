@@ -61,6 +61,8 @@ pub const NEXTROUND_TIME_MS: u32 = 2000;
 
 pub const SCORE_RECT_HEIGHT: u32 = 3;
 
+pub const GIVE_UP_TIME_MS: u32 = 3000;
+
 // - Fightgame -
 pub const FIGHTGAME_PLAYER_SPEED: f32 = 1.0;
 
@@ -80,17 +82,19 @@ pub const ARROW_SPAWN_OFFSET_Y: f32 = 6.;
 // - Jumpgame -
 pub const JUMPGAME_STUNNING_TIME: u64 = 800;
 pub const STUNNING_MOVE_FACTOR: f32 = 0.85;
-pub const JUMPGAME_PLAYER_SPEED: f32 = 2.0;
+pub const JUMPGAME_PLAYER_SPEED: f32 = 1.5;
 pub const JUMPGAME_GROUND_Y: u32 = 120;
 
 pub const JUMPGAME_JUMP_FORCE: f32 = 5.;
 pub const JUMPGAME_LOW_GRAVITY: f32 = 0.2;
 pub const JUMPGAME_HIGHT_GRAVITY: f32 = 0.4;
-// pub const JUMPGAME_LOW_GRAVITY: f32 = 0.8;
-// pub const JUMPGAME_HIGHT_GRAVITY: f32 = 1.6;
-// pub const JUMPGAME_JUMP_FORCE: f32 = 10.;
 pub const JUMP_MAX_HOLD: Duration = Duration::from_millis(200);
-pub const SCORE_MAX: u32 = (GAME_TIME_MS / FIXED_FPS * VIRTUAL_WIDHT) * 2;
+
+// TODO: Es ist ein rätzel wie sich SCORE_MAX ergibt. das könnte eine fehlerquelle sein
+pub const SCORE_MAX: u32 = (GAME_TIME_MS / FIXED_FPS * VIRTUAL_WIDHT) * 3;
+
+pub const PARALAX_FACTOR: i32 = 5;
+pub const METER_RUN_SPEED: f32 = 2.;
 
 // - Ballgame -
 pub const BALLGAME_PLAYER_SPEED: f32 = 2.0;
@@ -106,7 +110,7 @@ pub const BALLGAME_MAX_STAMINA: f32 = 3.;
 pub const BALLGAME_BALL_GRAVITY_LOW: f32 = 0.1;
 pub const BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY: f32 = 30.;
 pub const BALLGAME_BALL_GRAVITY_HIGH: f32 = 0.2;
-pub const BALLGAME_BALL_XBRAKE: f32 = 0.016;
+pub const BALLGAME_BALL_XBRAKE: f32 = 0.012;
 pub const BALLGAME_BALL_GROUND_BOUCE_FORCE: f32 = 3.;
 pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 2.;
 pub const BALLGAME_BALL_WALL_BOUCE_FORCE: f32 = 1.;
@@ -114,16 +118,13 @@ pub const BALLGAME_BALL_X_DISTANCE_TO_WALLS: f32 = 42.;
 pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = BALLGAME_BALL_X_DISTANCE_TO_WALLS - 8.;
 pub const BALLGAME_BALL_TIME_BETWEEN_COLLISIONS: Duration = Duration::from_millis(200);
 
-pub const BALLGAME_RING_LOWER_EDGE: f32 = 65.;
-pub const BALLGAME_RING_UPPER_EDGE: f32 = 28.;
+pub const BALLGAME_RING_UPPER_EDGE: f32 = 26.;
+pub const BALLGAME_RING_LOWER_EDGE: f32 = 67.;
 
 pub const BALLGAME_PLAYER2BALL_VELO_FACTOR: f32 = 0.8;
 
 pub const BALLGAME_DASH_TIME: u64 = 200;
 pub const BALLGAME_DASH_SPEED: f32 = 3.8;
-
-pub const PARALAX_FACTOR: i32 = 5;
-pub const METER_RUN_SPEED: f32 = 2.5;
 
 pub fn main() {
     let sdl_context = sdl3::init().unwrap();
@@ -427,7 +428,7 @@ impl<'a> Textures<'a> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Team {
     None,
     Blue,

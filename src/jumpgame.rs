@@ -14,7 +14,7 @@ use crate::{
     arcadeinput::ArcadeInput,
     math::{Vec2, rect_shifted},
     overworld::OverWorld,
-    player::{PlayerId, PlayerState},
+    player::{PlayerId, PlayerState, is_only_one_team_in_game},
     time::Timer,
 };
 
@@ -76,7 +76,13 @@ impl JumpGame {
                 self.handle_players_to_obsitcles();
                 self.handle_score();
 
-                // -> Outro
+                // -> Outro (giveup)
+                if is_only_one_team_in_game(&self.players) {
+                    self.outro_timer.restart();
+                    self.state = GameState::Outro;
+                }
+
+                // -> Outro (timeout)
                 if self.game_timer.is_over() {
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
@@ -100,7 +106,6 @@ impl JumpGame {
                 continue;
             }
             if let Some(score) = self.score.get_mut(gamepad_id) {
-                println!("{}", score);
                 *score += player.pos.x as u32;
                 let score_rect =
                     get_score_rect(0, gamepad_id as i32 * SCORE_RECT_HEIGHT as i32, *score);
