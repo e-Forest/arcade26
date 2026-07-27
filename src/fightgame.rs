@@ -329,11 +329,11 @@ impl FightGame {
         canvas.copy(bg, None, None).unwrap();
 
         // Player
-        for player in &self.players {
+        for (gamepad_id, player) in self.players.iter().enumerate() {
             if player.team == Team::None {
                 continue;
             }
-            player.draw(canvas, textures, None);
+            player.draw(canvas, textures, None, gamepad_id);
         }
 
         // Arrows

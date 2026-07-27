@@ -256,11 +256,11 @@ impl BallGame {
             .unwrap();
 
         // Player
-        for player in &self.players {
+        for (gamepad_id, player) in self.players.iter().enumerate() {
             if player.team == Team::None {
                 continue;
             }
-            player.draw(canvas, textures, Some(BALLGAME_GROUND_Y as i32));
+            player.draw(canvas, textures, Some(BALLGAME_GROUND_Y as i32), gamepad_id);
         }
 
         // Score

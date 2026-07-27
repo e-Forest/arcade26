@@ -70,7 +70,7 @@ impl Player {
             dash_end_time: Instant::now(),
             dash_direction: Vec2::zero(),
             last_ground: None,
-            stamina: 3.,
+            stamina: 0.,
             state: PlayerState::Idle,
             jump_start_time: Instant::now(),
             is_upgiving: false,
@@ -78,6 +78,53 @@ impl Player {
         };
         player
     }
+    pub fn update_overworlder(&mut self, input: &ArcadeInput, gamepad_id: usize) {
+        let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
+        let vertical_movement = -input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickY);
+        let input_move_direction = Vec2::new(horizontal_movement, vertical_movement).normalized();
+
+        self.velo = self.velo.lerp(
+            input_move_direction * FIGHTGAME_PLAYER_SPEED,
+            self.acceleration,
+        );
+
+        match self.state {
+            PlayerState::Idle => {
+                self.ase_player.play_tag("idle", true);
+
+                // -> Move
+                if self.velo.length() > INPUT_AXIS_THRESHOLD {
+                    self.state = PlayerState::Move;
+                }
+
+                // -> Shoot
+                if self.is_aiming == true && self.stamina >= 1. {
+                    self.state = PlayerState::Shoot;
+                }
+            }
+            PlayerState::Move => {
+                self.ase_player.play_tag("move", true);
+
+                // Flip
+                if self.velo.x > INPUT_AXIS_THRESHOLD {
+                    self.fliped = false;
+                } else if self.velo.x < -INPUT_AXIS_THRESHOLD {
+                    self.fliped = true;
+                }
+
+                // Velo
+                self.pos_old = self.pos;
+                self.pos = self.pos + self.velo;
+
+                // -> Idle
+                if self.velo.length() < INPUT_AXIS_THRESHOLD {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            _ => (),
+        }
+    }
+
     pub fn update_fighter(&mut self, input: &ArcadeInput, gamepad_id: usize) -> Vec<PlayerMessage> {
         let mut out = Vec::new();
 
@@ -449,7 +496,13 @@ impl Player {
         Instant::now() > dash_start + Duration::from_millis(DASH_GETS_DANGEROUS_TIME)
     }
 
-    pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures, ground_y: Option<i32>) {
+    pub fn draw(
+        &self,
+        canvas: &mut WindowCanvas,
+        textures: &Textures,
+        ground_y: Option<i32>,
+        gamepad_id: usize,
+    ) {
         // Teamfarbe
         canvas.set_draw_color(self.team.color());
 
@@ -483,7 +536,7 @@ impl Player {
         self.ase_player.draw_current_frame(
             canvas,
             self.pos,
-            &textures.player,
+            &textures.player_skin[gamepad_id],
             AnchorPosition::BottomCenter,
             self.fliped,
         );

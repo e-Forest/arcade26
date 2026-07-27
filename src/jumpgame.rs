@@ -210,11 +210,11 @@ impl JumpGame {
         }
 
         // Player
-        for player in &self.players {
+        for (gamepad_id, player) in self.players.iter().enumerate() {
             if player.team == Team::None {
                 continue;
             }
-            player.draw(canvas, textures, Some(JUMPGAME_GROUND_Y as i32));
+            player.draw(canvas, textures, Some(JUMPGAME_GROUND_Y as i32), gamepad_id);
         }
 
         // Obsticle (fore)

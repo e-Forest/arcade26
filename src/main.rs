@@ -165,8 +165,8 @@ pub fn main() {
 
     let textures = Textures::new(&creator);
 
-    // let mut current_scene = Scene::OverWorld(OverWorld::new());
-    let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
+    let mut current_scene = Scene::OverWorld(OverWorld::new());
+    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
@@ -361,7 +361,12 @@ pub enum SceneMessage {
 }
 
 pub struct Textures<'a> {
-    pub player: Texture<'a>,
+    // pub player: Texture<'a>,
+    pub player_skin: Vec<Texture<'a>>,
+    // pub player_skin0: Texture<'a>,
+    // pub player_skin1: Texture<'a>,
+    // pub player_skin2: Texture<'a>,
+    // pub player_skin3: Texture<'a>,
     pub overworld_background: Texture<'a>,
     pub jumpgame_background: Texture<'a>,
     pub jumpgame_paralax: Texture<'a>,
@@ -389,6 +394,12 @@ pub struct Textures<'a> {
 
 impl<'a> Textures<'a> {
     fn new(creator: &'a TextureCreator<WindowContext>) -> Self {
+        let mut player_skin = Vec::new();
+        player_skin.push(creator.load_texture("assets/player_skin0.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin1.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin2.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin3.png").unwrap());
+
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
             no_winner: creator.load_texture("assets/outro_no-winner.png").unwrap(),
@@ -407,7 +418,8 @@ impl<'a> Textures<'a> {
             outro_single_yellow: creator
                 .load_texture("assets/outro_single_yellow.png")
                 .unwrap(),
-            player: creator.load_texture("assets/player.png").unwrap(),
+            // player: creator.load_texture("assets/player.png").unwrap(),
+            player_skin,
             overworld_background: creator
                 .load_texture("assets/overworld_background.png")
                 .unwrap(),

@@ -175,7 +175,7 @@ impl<'a> OverWorld {
             {
                 player.team = Team::Green;
             }
-            player.update_fighter(input, idx);
+            player.update_overworlder(input, idx);
         }
     }
 
@@ -185,8 +185,8 @@ impl<'a> OverWorld {
         canvas.clear();
         canvas.copy(background_tx, None, None).unwrap();
 
-        for player in &self.players {
-            player.draw(canvas, textures, None)
+        for (gamepad_id, player) in self.players.iter().enumerate() {
+            player.draw(canvas, textures, None, gamepad_id)
         }
 
         // - Areas anzeigen -
