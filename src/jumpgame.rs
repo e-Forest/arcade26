@@ -368,7 +368,7 @@ impl Obsticle {
         let (w, h) = (texture.width(), texture.height());
         let dst = Rect::new(
             self.pos.x as i32,
-            self.pos.y as i32 - h.clamp(0, 64) as i32,
+            self.pos.y as i32 - h.clamp(0, 64) as i32, // clamp ist unsauber - nur damit Store gut dargestellt wird
             w,
             h,
         );
@@ -380,6 +380,7 @@ impl Obsticle {
                 .unwrap();
         }
     }
+
     pub fn draw_fore(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         if self.obsticle_enum == ObsticleEnum::Store {
             let texture = self.get_texture(textures);
@@ -387,7 +388,7 @@ impl Obsticle {
             let src = Rect::new(w as i32 / 2, 0, w / 2, h);
             let dst = Rect::new(
                 self.pos.x as i32 + w as i32 / 2,
-                self.pos.y as i32 - h.clamp(0, 64) as i32,
+                self.pos.y as i32 - h.clamp(0, 64) as i32, // clamp ist unsauber - nur damit Store gut dargestellt wird
                 w / 2,
                 h,
             );
