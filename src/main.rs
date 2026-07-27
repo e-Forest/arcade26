@@ -363,7 +363,6 @@ pub struct Textures<'a> {
     pub ballgame_background: Texture<'a>,
     pub scored_blue: Texture<'a>,
     pub scored_red: Texture<'a>,
-    // pub ballgame_foreground: Texture<'a>,
     pub arrow: Texture<'a>,
     pub platsch: Texture<'a>,
     pub fightgame_rules: Texture<'a>,
@@ -378,7 +377,6 @@ pub struct Textures<'a> {
     pub crate_stack: Texture<'a>,
     pub market_cart: Texture<'a>,
     pub store: Texture<'a>,
-    pub store_fore: Texture<'a>,
     pub ball: Texture<'a>,
 }
 
@@ -415,9 +413,6 @@ impl<'a> Textures<'a> {
             ballgame_background: creator
                 .load_texture("assets/ballgame_background.png")
                 .unwrap(),
-            // ballgame_foreground: creator
-            //     .load_texture("assets/ballgame_foreground.png")
-            //     .unwrap(),
             arrow: creator.load_texture("assets/arrow.png").unwrap(),
             platsch: creator.load_texture("assets/platsch.png").unwrap(),
             fightgame_rules: creator.load_texture("assets/fightgame_rules.png").unwrap(),
@@ -426,7 +421,6 @@ impl<'a> Textures<'a> {
             crate_stack: creator.load_texture("assets/crate_stack.png").unwrap(),
             market_cart: creator.load_texture("assets/market_cart.png").unwrap(),
             store: creator.load_texture("assets/store.png").unwrap(),
-            store_fore: creator.load_texture("assets/store(fore).png").unwrap(),
         }
     }
 }

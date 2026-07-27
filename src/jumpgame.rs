@@ -339,10 +339,10 @@ pub struct Obsticle {
 impl Obsticle {
     pub fn new(obsticle_enum: ObsticleEnum, pos: Vec2) -> Self {
         let collision_box = match obsticle_enum {
-            ObsticleEnum::Crate => Rect::new(0 + 1, 0 - 14, 14, 14),
+            ObsticleEnum::Crate => Rect::new(0, 0 - 16, 16, 16),
             ObsticleEnum::StackOfCrates => Rect::new(0 + 8, 0 - 32, 16, 32),
             ObsticleEnum::MarketCart => Rect::new(0 + 4, 0 - 12, 24, 12),
-            ObsticleEnum::Store => Rect::new(0, 0 - 64, 48, 16),
+            ObsticleEnum::Store => Rect::new(0 + 8, 0 - 64, 48 - 8, 16),
         };
         Self {
             obsticle_enum,
@@ -370,15 +370,16 @@ impl Obsticle {
     }
     pub fn draw_fore(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         if self.obsticle_enum == ObsticleEnum::Store {
-            let texture = &textures.store_fore;
+            let texture = self.get_texture(textures);
             let (w, h) = (texture.width(), texture.height());
+            let src = Rect::new(w as i32 / 2, 0, w / 2, h);
             let dst = Rect::new(
-                self.pos.x as i32,
+                self.pos.x as i32 + w as i32 / 2,
                 self.pos.y as i32 - h.clamp(0, 64) as i32,
-                w,
+                w / 2,
                 h,
             );
-            canvas.copy(texture, None, dst).unwrap();
+            canvas.copy(texture, src, dst).unwrap();
         }
     }
 
