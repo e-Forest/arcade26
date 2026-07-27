@@ -52,8 +52,8 @@ pub const PARTICLE_LIFETIME_MAX_MS: u32 = 600;
 pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 
-// pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
-pub const GAME_TIME_MS: u32 = 5000;
+pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
+// pub const GAME_TIME_MS: u32 = 5000;
 pub const INTRO_TIME_MS: u32 = 3000;
 pub const OUTRO_TIME_MS: u32 = 5000;
 pub const START_GAME_TIME_MS: u32 = 3000;
@@ -308,7 +308,9 @@ impl Arrow {
         }
     }
     pub fn update(&mut self) {
-        self.is_allive = Instant::now() < self.lifetime;
+        if self.is_allive {
+            self.is_allive = Instant::now() < self.lifetime;
+        }
         self.pos = self.pos + self.direction.normalized() * self.speed
     }
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {

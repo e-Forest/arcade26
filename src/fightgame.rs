@@ -124,6 +124,8 @@ impl FightGame {
             GameState::NextRound => (),
         }
 
+        // - Kill Arrows -
+        self.arrows.retain(|arrow| arrow.is_allive);
         SceneMessage::None
     }
 
@@ -305,7 +307,6 @@ impl FightGame {
                     .push(Platsch::new(arrow.pos, &self.platsch_template));
             }
         }
-        self.arrows.retain(|arrow| arrow.is_allive);
     }
 
     fn update_players(&mut self, input: &ArcadeInput) {
@@ -328,22 +329,28 @@ impl FightGame {
         let bg = &textures.fightgame_background;
         canvas.copy(bg, None, None).unwrap();
 
-        // Player
-        for (gamepad_id, player) in self.players.iter().enumerate() {
-            if player.team == Team::None {
-                continue;
+        // Platsch
+        for platsch in &self.platsches {
+            platsch.draw(canvas, textures);
+        }
+
+        // - Player anzeigen (y-ordered) -
+        let mut player_y_ordered = Vec::new();
+
+        for (idx, player) in self.players.iter().enumerate() {
+            player_y_ordered.push((idx, player.pos.y as i32));
+        }
+
+        player_y_ordered.sort_by(|(_a_idx, a_y), (_b_idx, b_y)| a_y.cmp(b_y));
+        for (idx, _y) in player_y_ordered {
+            if let Some(player) = self.players.get(idx) {
+                player.draw(canvas, textures, None, idx)
             }
-            player.draw(canvas, textures, None, gamepad_id);
         }
 
         // Arrows
         for arrow in &self.arrows {
             arrow.draw(canvas, textures);
-        }
-
-        // Platsch
-        for platsch in &self.platsches {
-            platsch.draw(canvas, textures);
         }
 
         // GameTime

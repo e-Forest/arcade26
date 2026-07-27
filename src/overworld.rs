@@ -185,8 +185,18 @@ impl<'a> OverWorld {
         canvas.clear();
         canvas.copy(background_tx, None, None).unwrap();
 
-        for (gamepad_id, player) in self.players.iter().enumerate() {
-            player.draw(canvas, textures, None, gamepad_id)
+        // - Player anzeigen (y-ordered) -
+        let mut player_y_ordered = Vec::new();
+
+        for (idx, player) in self.players.iter().enumerate() {
+            player_y_ordered.push((idx, player.pos.y as i32));
+        }
+
+        player_y_ordered.sort_by(|(_a_idx, a_y), (_b_idx, b_y)| a_y.cmp(b_y));
+        for (idx, _y) in player_y_ordered {
+            if let Some(player) = self.players.get(idx) {
+                player.draw(canvas, textures, None, idx)
+            }
         }
 
         // - Areas anzeigen -
