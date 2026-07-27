@@ -3,12 +3,13 @@ use std::time::{Duration, Instant};
 use rand::random_range;
 use sdl3::{
     pixels::Color,
-    rect::Rect,
+    rect::{Point, Rect},
     render::{Texture, WindowCanvas},
 };
 
 use crate::{
-    DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, JUMPGAME_GROUND_Y, JUMPGAME_STUNNING_TIME,
+    DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, JUMPGAME_GROUND_Y,
+    JUMPGAME_STUNNING_LOW_POSX, JUMPGAME_STUNNING_TIME_HIGH, JUMPGAME_STUNNING_TIME_LOW,
     METER_RUN_SPEED, OUTRO_TIME_MS, PARALAX_FACTOR, Particle, Player, SCORE_MAX, SCORE_RECT_HEIGHT,
     Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
@@ -32,6 +33,7 @@ pub struct JumpGame {
     score: [u32; 4], // gamepad_id / score
     particles: Vec<Particle>,
     state: GameState,
+    score_max: u32,
 }
 
 impl JumpGame {
@@ -56,6 +58,7 @@ impl JumpGame {
             obsticle_spawn_time: Instant::now(),
             score: [0; 4],
             particles: Vec::new(),
+            score_max: 0,
         }
     }
 
@@ -75,6 +78,8 @@ impl JumpGame {
                 self.update_particles();
                 self.handle_players_to_obsitcles();
                 self.handle_score();
+                self.score_max += VIRTUAL_WIDHT;
+                println!("sm: {}", self.score_max);
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
@@ -130,8 +135,12 @@ impl JumpGame {
             for obsticle in self.obsticles.iter() {
                 let obsticle_box = rect_shifted(obsticle.collision_box, obsticle.pos.as_point());
                 if player_box.has_intersection(obsticle_box) {
-                    player.stunned_end_time =
-                        Instant::now() + Duration::from_millis(JUMPGAME_STUNNING_TIME);
+                    let stunning_time = if player.pos.x < JUMPGAME_STUNNING_LOW_POSX {
+                        JUMPGAME_STUNNING_TIME_LOW
+                    } else {
+                        JUMPGAME_STUNNING_TIME_HIGH
+                    };
+                    player.stunned_end_time = Instant::now() + Duration::from_millis(stunning_time);
                 }
             }
         }
@@ -150,7 +159,7 @@ impl JumpGame {
             let obsticle_enum = match random_range(0..4) {
                 0 => ObsticleEnum::Crate,
                 1 => ObsticleEnum::StackOfCrates,
-                2 => ObsticleEnum::MarketSign,
+                2 => ObsticleEnum::Store,
                 _ => ObsticleEnum::MarketCart,
             };
 
@@ -205,6 +214,11 @@ impl JumpGame {
                 continue;
             }
             player.draw(canvas, textures, Some(JUMPGAME_GROUND_Y as i32));
+        }
+
+        // Obsticle (fore)
+        for obsticle in self.obsticles.iter() {
+            obsticle.draw_fore(canvas, textures);
         }
 
         // GameTime
@@ -281,6 +295,14 @@ impl JumpGame {
             }
             _ => (),
         }
+
+        // DEBUG
+        canvas
+            .draw_line(
+                Point::new(JUMPGAME_STUNNING_LOW_POSX as i32, 0),
+                Point::new(JUMPGAME_STUNNING_LOW_POSX as i32, VIRTUAL_HEIGHT as i32),
+            )
+            .unwrap();
     }
 
     fn update_players(&mut self, input: &ArcadeInput) {
@@ -305,7 +327,7 @@ pub enum ObsticleEnum {
     Crate,
     StackOfCrates,
     MarketCart,
-    MarketSign,
+    Store,
 }
 
 pub struct Obsticle {
@@ -317,10 +339,10 @@ pub struct Obsticle {
 impl Obsticle {
     pub fn new(obsticle_enum: ObsticleEnum, pos: Vec2) -> Self {
         let collision_box = match obsticle_enum {
-            ObsticleEnum::Crate => Rect::new(0, 0 - 16, 16, 16),
-            ObsticleEnum::StackOfCrates => Rect::new(8, 0 - 32, 16, 32),
-            ObsticleEnum::MarketCart => Rect::new(0, 0 - 16, 32, 16),
-            ObsticleEnum::MarketSign => Rect::new(0, 0 - 64, 16, 22),
+            ObsticleEnum::Crate => Rect::new(0 + 1, 0 - 14, 14, 14),
+            ObsticleEnum::StackOfCrates => Rect::new(0 + 8, 0 - 32, 16, 32),
+            ObsticleEnum::MarketCart => Rect::new(0 + 4, 0 - 12, 24, 12),
+            ObsticleEnum::Store => Rect::new(0, 0 - 64, 48, 16),
         };
         Self {
             obsticle_enum,
@@ -332,7 +354,12 @@ impl Obsticle {
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         let texture = self.get_texture(textures);
         let (w, h) = (texture.width(), texture.height());
-        let dst = Rect::new(self.pos.x as i32, self.pos.y as i32 - h as i32, w, h);
+        let dst = Rect::new(
+            self.pos.x as i32,
+            self.pos.y as i32 - h.clamp(0, 64) as i32,
+            w,
+            h,
+        );
         canvas.copy(texture, None, dst).unwrap();
         if DEBUGMODE {
             canvas.set_draw_color(Color::MAGENTA);
@@ -341,13 +368,26 @@ impl Obsticle {
                 .unwrap();
         }
     }
+    pub fn draw_fore(&self, canvas: &mut WindowCanvas, textures: &Textures) {
+        if self.obsticle_enum == ObsticleEnum::Store {
+            let texture = &textures.store_fore;
+            let (w, h) = (texture.width(), texture.height());
+            let dst = Rect::new(
+                self.pos.x as i32,
+                self.pos.y as i32 - h.clamp(0, 64) as i32,
+                w,
+                h,
+            );
+            canvas.copy(texture, None, dst).unwrap();
+        }
+    }
 
     fn get_texture<'a>(&self, textures: &'a Textures) -> &Texture<'a> {
         match self.obsticle_enum {
             ObsticleEnum::Crate => &textures.crate_single,
             ObsticleEnum::StackOfCrates => &textures.crate_stack,
             ObsticleEnum::MarketCart => &textures.market_cart,
-            ObsticleEnum::MarketSign => &textures.market_sign,
+            ObsticleEnum::Store => &textures.store,
         }
     }
 }

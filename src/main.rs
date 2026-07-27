@@ -41,7 +41,7 @@ use time::*;
 pub mod player;
 use player::*;
 
-pub const DEBUGMODE: bool = false;
+pub const DEBUGMODE: bool = true;
 pub const FIXED_FPS: u32 = 60;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
@@ -80,7 +80,9 @@ pub const ARROW_SPAWN_DISTANCE: f32 = 8.;
 pub const ARROW_SPAWN_OFFSET_Y: f32 = 6.;
 
 // - Jumpgame -
-pub const JUMPGAME_STUNNING_TIME: u64 = 800;
+pub const JUMPGAME_STUNNING_LOW_POSX: f32 = 50.;
+pub const JUMPGAME_STUNNING_TIME_LOW: u64 = 200;
+pub const JUMPGAME_STUNNING_TIME_HIGH: u64 = 800;
 pub const STUNNING_MOVE_FACTOR: f32 = 0.85;
 pub const JUMPGAME_PLAYER_SPEED: f32 = 1.5;
 pub const JUMPGAME_GROUND_Y: u32 = 120;
@@ -90,8 +92,7 @@ pub const JUMPGAME_LOW_GRAVITY: f32 = 0.2;
 pub const JUMPGAME_HIGHT_GRAVITY: f32 = 0.4;
 pub const JUMP_MAX_HOLD: Duration = Duration::from_millis(200);
 
-// TODO: Es ist ein rätzel wie sich SCORE_MAX ergibt. das könnte eine fehlerquelle sein
-pub const SCORE_MAX: u32 = (GAME_TIME_MS / FIXED_FPS * VIRTUAL_WIDHT) * 3;
+pub const SCORE_MAX: u32 = GAME_TIME_MS / (1000 / FIXED_FPS) * VIRTUAL_WIDHT; // gemessen: 2.360.000
 
 pub const PARALAX_FACTOR: i32 = 5;
 pub const METER_RUN_SPEED: f32 = 2.;
@@ -163,8 +164,8 @@ pub fn main() {
 
     let textures = Textures::new(&creator);
 
-    let mut current_scene = Scene::OverWorld(OverWorld::new());
-    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
+    // let mut current_scene = Scene::OverWorld(OverWorld::new());
+    let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
@@ -375,8 +376,9 @@ pub struct Textures<'a> {
     pub outro_single_yellow: Texture<'a>,
     pub crate_single: Texture<'a>,
     pub crate_stack: Texture<'a>,
-    pub market_sign: Texture<'a>,
     pub market_cart: Texture<'a>,
+    pub store: Texture<'a>,
+    pub store_fore: Texture<'a>,
     pub ball: Texture<'a>,
 }
 
@@ -422,8 +424,9 @@ impl<'a> Textures<'a> {
             jumpgame_rules: creator.load_texture("assets/jumpgame_rules.png").unwrap(),
             crate_single: creator.load_texture("assets/crate_single.png").unwrap(),
             crate_stack: creator.load_texture("assets/crate_stack.png").unwrap(),
-            market_sign: creator.load_texture("assets/market_sign.png").unwrap(),
             market_cart: creator.load_texture("assets/market_cart.png").unwrap(),
+            store: creator.load_texture("assets/store.png").unwrap(),
+            store_fore: creator.load_texture("assets/store(fore).png").unwrap(),
         }
     }
 }
