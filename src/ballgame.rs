@@ -344,19 +344,30 @@ impl BallGame {
                 );
 
                 // - Gewinner Anzeigen -
-                if self.score_blue > self.score_red {
-                    canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
+                let mut winner_team = Team::None;
+                if is_only_one_team_in_game(&self.players) {
+                    for p in &self.players {
+                        if p.team != Team::None {
+                            winner_team = p.team;
+                        }
+                    }
+                } else if self.score_blue > self.score_red {
+                    winner_team = Team::Blue;
                 } else if self.score_blue < self.score_red {
-                    canvas.copy(&textures.outro_teams_red, None, None).unwrap();
+                    winner_team = Team::Red;
                 } else {
-                    match self.last_scored_team {
-                        Team::Blue => {
-                            canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
-                        }
-                        Team::Red => {
-                            canvas.copy(&textures.outro_teams_red, None, None).unwrap();
-                        }
-                        _ => (),
+                    winner_team = self.last_scored_team;
+                }
+
+                match winner_team {
+                    Team::Blue => {
+                        canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
+                    }
+                    Team::Red => {
+                        canvas.copy(&textures.outro_teams_red, None, None).unwrap();
+                    }
+                    _ => {
+                        canvas.copy(&textures.no_winner, None, None).unwrap();
                     }
                 }
             }

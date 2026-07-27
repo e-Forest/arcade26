@@ -83,8 +83,10 @@ impl<'a> OverWorld {
         self.update_players(input);
 
         // - Handle Scene-Changes -
-        let is_fair_teams_ballgame = players_at_ballgame_blue == players_at_ballgame_red;
-        let is_fair_teams_fightgame = players_at_fightgame_blue == players_at_fightgame_red;
+        let is_ballgame_teams_ok = players_at_ballgame_blue >= 1;
+        let is_fightgame_teams_ok = players_at_fightgame_blue >= 1;
+        // let is_fair_teams_ballgame = players_at_ballgame_blue == players_at_ballgame_red;
+        // let is_fair_teams_fightgame = players_at_fightgame_blue == players_at_fightgame_red;
         let is_fair_temas_jumpgame = players_at_jumpgame_red <= 1
             && players_at_jumpgame_blue <= 1
             && players_at_jumpgame_yellow <= 1
@@ -97,13 +99,13 @@ impl<'a> OverWorld {
                         self.get_players_in_team(),
                     )));
                 }
-            } else if is_fair_teams_ballgame && players_at_ballgame + players_at_noplay == 4 {
+            } else if is_ballgame_teams_ok && players_at_ballgame + players_at_noplay == 4 {
                 if self.start_game_timer.is_over() {
                     return SceneMessage::ChangeScene(Scene::BallGame(BallGame::new(
                         self.get_players_in_team(),
                     )));
                 }
-            } else if is_fair_teams_fightgame && players_at_fightgame + players_at_noplay == 4 {
+            } else if is_fightgame_teams_ok && players_at_fightgame + players_at_noplay == 4 {
                 if self.start_game_timer.is_over() {
                     return SceneMessage::ChangeScene(Scene::FightGame(FightGame::new(
                         self.get_players_in_team(),

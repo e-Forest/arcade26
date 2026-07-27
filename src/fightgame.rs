@@ -8,9 +8,10 @@ use sdl3::{
 };
 
 use crate::{
-    Arrow, DEBUGMODE, FIGHTGAME_STUNNING_TIME, GAME_TIME_MS, GameState, INTRO_TIME_MS,
-    OUTRO_TIME_MS, Particle, Player, SCORE_RECT_HEIGHT, STUNNING_SPEED_ARROW_HIT,
-    STUNNING_SPEED_DASH_HIT, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    Arrow, DEBUGMODE, FIGHTGAME_DASHTIME_AFTER_HIT_MS, FIGHTGAME_STUNNING_TIME, GAME_TIME_MS,
+    GameState, INTRO_TIME_MS, OUTRO_TIME_MS, Particle, Player, SCORE_RECT_HEIGHT,
+    STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, Scene, SceneMessage, Team, Textures,
+    VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, middle_direction, rect_shifted},
@@ -27,11 +28,11 @@ pub struct FightGame {
     players: Vec<Player>,
     arrows: Vec<Arrow>,
     ground_boxes: Vec<Rect>,
-    rule_area: Rect,
+    score_area: Rect,
     platsches: Vec<Platsch>,
     particles: Vec<Particle>,
-    ruletime_blue: u32,
-    ruletime_red: u32,
+    score_blue: u32,
+    score_red: u32,
     platsch_template: AsePlayer,
 }
 
@@ -54,7 +55,7 @@ impl FightGame {
             players.push(p);
         }
 
-        let rule_area = Rect::new(260, 75, 32, 30);
+        let score_area = Rect::new(260, 75, 32, 30);
 
         let ground_boxes = vec![
             Rect::new(0, 0, 32, 180),
@@ -72,13 +73,13 @@ impl FightGame {
             outro_timer: Timer::new(OUTRO_TIME_MS),
             players,
             arrows: Vec::new(),
-            rule_area,
+            score_area,
             ground_boxes,
             platsch_template: platsch_json_template,
             platsches: Vec::new(),
             particles: Vec::new(),
-            ruletime_blue: 0,
-            ruletime_red: 0,
+            score_blue: 0,
+            score_red: 0,
         }
     }
 
@@ -100,7 +101,7 @@ impl FightGame {
                 self.handle_players_to_arrows();
                 self.handle_players_to_dashingplayers();
                 self.handle_players_to_groundboxes();
-                self.handle_players_to_rulearea(delta_ms);
+                self.handle_players_to_scorearea(delta_ms);
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
@@ -126,9 +127,9 @@ impl FightGame {
         SceneMessage::None
     }
 
-    fn handle_players_to_rulearea(&mut self, delta_ms: u32) {
-        let ruletime_rect_red = get_ruletime_rect(0, SCORE_RECT_HEIGHT as i32, self.ruletime_red);
-        let ruletime_rect_blue = get_ruletime_rect(0, 0, self.ruletime_blue);
+    fn handle_players_to_scorearea(&mut self, delta_ms: u32) {
+        let score_rect_red = get_score_rect(0, SCORE_RECT_HEIGHT as i32, self.score_red);
+        let score_rect_blue = get_score_rect(0, 0, self.score_blue);
         for player in &self.players {
             let mut color = match player.team {
                 Team::Blue => Color::BLUE,
@@ -138,25 +139,25 @@ impl FightGame {
             if random_range(0..3) == 0 {
                 color = Color::WHITE;
             }
-            if self.rule_area.contains_point(player.pos.as_point()) {
+            if self.score_area.contains_point(player.pos.as_point()) {
                 match player.team {
                     Team::Blue => {
-                        self.ruletime_blue += delta_ms;
+                        self.score_blue += delta_ms;
                         self.particles.push(Particle::new(
                             Vec2::new(
-                                ruletime_rect_blue.right() as f32,
-                                ruletime_rect_blue.center().y as f32,
+                                score_rect_blue.right() as f32,
+                                score_rect_blue.center().y as f32,
                             ),
                             color,
                             Vec2::random_normalized(),
                         ));
                     }
                     Team::Red => {
-                        self.ruletime_red += delta_ms;
+                        self.score_red += delta_ms;
                         self.particles.push(Particle::new(
                             Vec2::new(
-                                ruletime_rect_red.right() as f32,
-                                ruletime_rect_red.center().y as f32,
+                                score_rect_red.right() as f32,
+                                score_rect_red.center().y as f32,
                             ),
                             color,
                             Vec2::random_normalized(),
@@ -244,16 +245,17 @@ impl FightGame {
         }
         for player_idx in player_stop_dashing {
             if let Some(player) = self.players.get_mut(player_idx) {
-                player.state = PlayerState::Idle;
+                player.dash_end_time =
+                    Instant::now() - Duration::from_millis(FIGHTGAME_DASHTIME_AFTER_HIT_MS);
             }
         }
     }
 
     fn handle_players_to_arrows(&mut self) {
         let mut player_stunnings = Vec::new();
-        let mut arrows_to_remove = Vec::new();
+        // let mut arrows_to_remove = Vec::new();
         for (player_idx, player) in self.players.iter().enumerate() {
-            for (arrow_idx, arrow) in self.arrows.iter().enumerate() {
+            for (_arrow_idx, arrow) in self.arrows.iter_mut().enumerate() {
                 if player.team == arrow.team {
                     continue;
                 }
@@ -267,13 +269,15 @@ impl FightGame {
                         player_idx,
                         arrow.direction.normalized() * STUNNING_SPEED_ARROW_HIT,
                     ));
-                    arrows_to_remove.push(arrow_idx);
+                    arrow.is_allive = false;
+                    // arrows_to_remove.push(arrow_idx);
                 }
             }
         }
-        for arrow_idx in arrows_to_remove {
-            self.arrows.remove(arrow_idx);
-        }
+        // for arrow_idx in arrows_to_remove {
+
+        //     self.arrows.remove(arrow_idx);
+        // }
         for (player_idx, stunning_velo) in player_stunnings {
             if let Some(player) = self.players.get_mut(player_idx) {
                 player.stunned_end_time =
@@ -294,14 +298,14 @@ impl FightGame {
     fn update_arrows(&mut self) {
         for arrow in self.arrows.iter_mut() {
             arrow.update();
-            if arrow.is_allive() == false
+            if arrow.is_allive == false
                 && ground_at_point(arrow.pos.as_point(), &self.ground_boxes).is_none()
             {
                 self.platsches
                     .push(Platsch::new(arrow.pos, &self.platsch_template));
             }
         }
-        self.arrows.retain(|arrow| arrow.is_allive());
+        self.arrows.retain(|arrow| arrow.is_allive);
     }
 
     fn update_players(&mut self, input: &ArcadeInput) {
@@ -350,18 +354,14 @@ impl FightGame {
             Color::RED,
         );
 
-        // RuleTime
+        // Score
         canvas.set_draw_color(Color::BLUE);
         canvas
-            .fill_rect(get_ruletime_rect(0, 0, self.ruletime_blue))
+            .fill_rect(get_score_rect(0, 0, self.score_blue))
             .unwrap();
         canvas.set_draw_color(Color::RED);
         canvas
-            .fill_rect(get_ruletime_rect(
-                0,
-                SCORE_RECT_HEIGHT as i32,
-                self.ruletime_red,
-            ))
+            .fill_rect(get_score_rect(0, SCORE_RECT_HEIGHT as i32, self.score_red))
             .unwrap();
 
         // Particle
@@ -391,10 +391,31 @@ impl FightGame {
                     Color::RED,
                 );
                 // - Gewinner Anzeigen -
-                if self.ruletime_blue > self.ruletime_red {
-                    canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
+                let mut winner_team = Team::None;
+                if is_only_one_team_in_game(&self.players) {
+                    for p in &self.players {
+                        if p.team != Team::None {
+                            winner_team = p.team;
+                        }
+                    }
+                } else if self.score_blue > self.score_red {
+                    winner_team = Team::Blue;
+                } else if self.score_blue < self.score_red {
+                    winner_team = Team::Red;
                 } else {
-                    canvas.copy(&textures.outro_teams_red, None, None).unwrap();
+                    winner_team = Team::None;
+                }
+
+                match winner_team {
+                    Team::Blue => {
+                        canvas.copy(&textures.outro_teams_blue, None, None).unwrap();
+                    }
+                    Team::Red => {
+                        canvas.copy(&textures.outro_teams_red, None, None).unwrap();
+                    }
+                    _ => {
+                        canvas.copy(&textures.no_winner, None, None).unwrap();
+                    }
                 }
             }
             _ => (),
@@ -417,8 +438,8 @@ impl FightGame {
     }
 }
 
-fn get_ruletime_rect(x: i32, y: i32, rule_ms: u32) -> Rect {
-    let w = VIRTUAL_WIDHT as f32 * 1. / GAME_TIME_MS as f32 * rule_ms as f32;
+fn get_score_rect(x: i32, y: i32, score: u32) -> Rect {
+    let w = VIRTUAL_WIDHT as f32 * 1. / GAME_TIME_MS as f32 * score as f32;
     Rect::new(x, y, w as u32, SCORE_RECT_HEIGHT)
 }
 

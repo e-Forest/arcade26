@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 use rand::random_range;
 use sdl3::{
+    libc::dev_t,
     pixels::Color,
     rect::{Point, Rect},
     render::{Texture, WindowCanvas},
@@ -276,16 +277,25 @@ impl JumpGame {
                 // - Gewinner Anzeigen -
                 let mut max_score = 0;
                 let mut winner_team = Team::None;
-                for (i, score) in self.score.iter().enumerate() {
-                    if *score > max_score {
-                        max_score = *score;
-                        if let Some(player) = self.players.get(i) {
-                            winner_team = player.team;
+
+                if is_only_one_team_in_game(&self.players) {
+                    for p in &self.players {
+                        if p.team != Team::None {
+                            winner_team = p.team;
+                        }
+                    }
+                } else {
+                    for (i, score) in self.score.iter().enumerate() {
+                        if *score > max_score {
+                            max_score = *score;
+                            if let Some(player) = self.players.get(i) {
+                                winner_team = player.team;
+                            }
                         }
                     }
                 }
                 let texture = match winner_team {
-                    Team::None => &textures.outro_single_red,
+                    Team::None => &textures.no_winner,
                     Team::Blue => &textures.outro_single_blue,
                     Team::Red => &textures.outro_single_red,
                     Team::Green => &textures.outro_single_green,
@@ -297,12 +307,14 @@ impl JumpGame {
         }
 
         // DEBUG
-        canvas
-            .draw_line(
-                Point::new(JUMPGAME_STUNNING_LOW_POSX as i32, 0),
-                Point::new(JUMPGAME_STUNNING_LOW_POSX as i32, VIRTUAL_HEIGHT as i32),
-            )
-            .unwrap();
+        if DEBUGMODE {
+            canvas
+                .draw_line(
+                    Point::new(JUMPGAME_STUNNING_LOW_POSX as i32, 0),
+                    Point::new(JUMPGAME_STUNNING_LOW_POSX as i32, VIRTUAL_HEIGHT as i32),
+                )
+                .unwrap();
+        }
     }
 
     fn update_players(&mut self, input: &ArcadeInput) {

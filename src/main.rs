@@ -41,7 +41,7 @@ use time::*;
 pub mod player;
 use player::*;
 
-pub const DEBUGMODE: bool = true;
+pub const DEBUGMODE: bool = false;
 pub const FIXED_FPS: u32 = 60;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
@@ -52,8 +52,8 @@ pub const PARTICLE_LIFETIME_MAX_MS: u32 = 600;
 pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 
-pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
-// pub const GAME_TIME_MS: u32 = 5000;
+// pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
+pub const GAME_TIME_MS: u32 = 5000;
 pub const INTRO_TIME_MS: u32 = 3000;
 pub const OUTRO_TIME_MS: u32 = 5000;
 pub const START_GAME_TIME_MS: u32 = 3000;
@@ -71,6 +71,7 @@ pub const STUNNING_SPEED_ARROW_HIT: f32 = 1.;
 pub const STUNNING_SPEED_DASH_HIT: f32 = 1.6;
 
 pub const FIGHTGAME_DASH_TIME: u64 = 350;
+pub const FIGHTGAME_DASHTIME_AFTER_HIT_MS: u64 = 80;
 pub const FIGHTGAME_DASH_SPEED: f32 = 1.8;
 pub const DASH_GETS_DANGEROUS_TIME: u64 = 150;
 
@@ -236,7 +237,9 @@ pub fn main() {
                         }
                     },
                 }
-                fps_guard.draw(tcnv, VIRTUAL_WIDHT as i32 - 20, 0);
+                if DEBUGMODE {
+                    fps_guard.draw(tcnv, VIRTUAL_WIDHT as i32 - 20, 0);
+                }
             })
             .unwrap();
         draw_rendertarget_as_letterbox(&mut canvas, &rendertarget);
@@ -289,6 +292,7 @@ pub struct Arrow {
     speed: f32,
     team: Team,
     colision_box: Rect,
+    is_allive: bool,
 }
 
 impl Arrow {
@@ -300,9 +304,11 @@ impl Arrow {
             speed: ARROW_SPEED,
             team,
             colision_box: Rect::new(-2, -2, 4, 4),
+            is_allive: true,
         }
     }
     pub fn update(&mut self) {
+        self.is_allive = Instant::now() < self.lifetime;
         self.pos = self.pos + self.direction.normalized() * self.speed
     }
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
@@ -344,9 +350,9 @@ impl Arrow {
             canvas.draw_point(self.pos.as_point()).unwrap();
         }
     }
-    pub fn is_allive(&self) -> bool {
-        Instant::now() < self.lifetime
-    }
+    // pub fn is_allive(&self) -> bool {
+    //     Instant::now() < self.lifetime
+    // }
 }
 
 pub enum SceneMessage {
@@ -378,12 +384,14 @@ pub struct Textures<'a> {
     pub market_cart: Texture<'a>,
     pub store: Texture<'a>,
     pub ball: Texture<'a>,
+    pub no_winner: Texture<'a>,
 }
 
 impl<'a> Textures<'a> {
     fn new(creator: &'a TextureCreator<WindowContext>) -> Self {
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            no_winner: creator.load_texture("assets/outro_no-winner.png").unwrap(),
             scored_red: creator.load_texture("assets/scored_red.png").unwrap(),
             scored_blue: creator.load_texture("assets/scored_blue.png").unwrap(),
             ball: creator.load_texture("assets/ball.png").unwrap(),
