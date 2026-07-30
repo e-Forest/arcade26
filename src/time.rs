@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use sdl3::{pixels::Color, rect::Rect, render::WindowCanvas};
+use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 pub struct Timer {
     start: Instant,

@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use rand::random_range;
-use sdl3::{
+use sdl2::{
     libc::dev_t,
     pixels::Color,
     rect::{Point, Rect},
@@ -173,7 +173,7 @@ impl JumpGame {
     }
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
-        let paralax_widht = textures.jumpgame_paralax.width();
+        let paralax_widht = textures.jumpgame_paralax.query().width;
         let paralax_x = (self.meter / PARALAX_FACTOR as f32) as i32 % paralax_widht as i32;
         let paralax_dst_1 = Rect::new(paralax_x, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT);
         let paralax_dst_2 = Rect::new(
@@ -182,7 +182,7 @@ impl JumpGame {
             VIRTUAL_WIDHT,
             VIRTUAL_HEIGHT,
         );
-        let background_widht = textures.jumpgame_background.width();
+        let background_widht = textures.jumpgame_background.query().width;
         let background_x = self.meter as i32 % background_widht as i32;
         let background_dst_1 = Rect::new(background_x, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT);
         let background_dst_2 = Rect::new(
@@ -363,7 +363,9 @@ impl Obsticle {
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         let texture = self.get_texture(textures);
-        let (w, h) = (texture.width(), texture.height());
+        let q = texture.query();
+        let (w, h) = (q.width, q.height);
+
         let dst = Rect::new(
             self.pos.x as i32,
             self.pos.y as i32 - h.clamp(0, 64) as i32, // clamp ist unsauber - nur damit Store gut dargestellt wird
@@ -382,7 +384,9 @@ impl Obsticle {
     pub fn draw_fore(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         if self.obsticle_enum == ObsticleEnum::Store {
             let texture = self.get_texture(textures);
-            let (w, h) = (texture.width(), texture.height());
+            let q = texture.query();
+            let (w, h) = (q.width, q.height);
+
             let src = Rect::new(w as i32 / 2, 0, w / 2, h);
             let dst = Rect::new(
                 self.pos.x as i32 + w as i32 / 2,

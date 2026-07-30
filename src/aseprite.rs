@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use sdl3::{
+use sdl2::{
     rect::{Point, Rect},
     render::{Texture, WindowCanvas},
 };
@@ -206,7 +206,8 @@ pub fn draw_texture(
     let src = if let Some(src) = src {
         src
     } else {
-        Rect::new(0, 0, texture.width(), texture.height())
+        let q = texture.query();
+        Rect::new(0, 0, q.width, q.height)
     };
     let (sw, sh) = (src.width(), src.height());
     let (shift_top, shift_left) = match anchor {

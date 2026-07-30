@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use gilrs::Button;
-use sdl3::{
+use sdl2::{
     pixels::Color,
     rect::{Point, Rect},
     render::WindowCanvas,

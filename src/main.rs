@@ -1,11 +1,11 @@
 use rand::random_range;
-use sdl3::Sdl;
-use sdl3::image::LoadTexture;
-use sdl3::pixels::Color;
-use sdl3::rect::{Point, Rect};
-use sdl3::render::{BlendMode, ScaleMode, Texture, TextureCreator};
-use sdl3::video::{Display, DisplayMode, FullscreenType, WindowContext, WindowPos};
-use sdl3::{keyboard::Keycode, render::WindowCanvas};
+use sdl2::Sdl;
+use sdl2::image::LoadTexture;
+use sdl2::pixels::Color;
+use sdl2::rect::{Point, Rect};
+use sdl2::render::{BlendMode, ScaleMode, Texture, TextureCreator};
+use sdl2::video::{DisplayMode, FullscreenType, WindowContext, WindowPos};
+use sdl2::{keyboard::Keycode, render::WindowCanvas};
 use std::thread::sleep;
 use std::time::Instant;
 use std::{collections::HashMap, time::Duration};
@@ -129,7 +129,7 @@ pub const BALLGAME_DASH_TIME: u64 = 200;
 pub const BALLGAME_DASH_SPEED: f32 = 3.8;
 
 pub fn main() {
-    let sdl_context = sdl3::init().unwrap();
+    let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
     let mut window = video_subsystem
@@ -137,16 +137,17 @@ pub fn main() {
         .build()
         .unwrap();
 
-    if let Some(display) = video_subsystem.displays().unwrap().get(1) {
-        let bounds = display.get_bounds().unwrap();
+    // if let Some(display) = video_subsystem.displays().unwrap().get(1) {
+    if let Ok(bounds) = video_subsystem.display_bounds(1) {
+        // let bounds = display.get_bounds().unwrap();
         window.set_position(
             WindowPos::Positioned(bounds.x),
             WindowPos::Positioned(bounds.y),
         );
     }
-    window.set_fullscreen(true).unwrap();
+    window.set_fullscreen(FullscreenType::Desktop).unwrap();
 
-    let mut canvas = window.into_canvas();
+    let mut canvas = window.into_canvas().build().unwrap();
     let creator = canvas.texture_creator();
 
     canvas.set_draw_color(Color::RGB(0, 255, 255));
@@ -262,11 +263,11 @@ fn draw_rendertarget_as_letterbox(canvas: &mut WindowCanvas, render_target: &Tex
     }
 }
 
-fn is_sdl_quit(sdl_eventpump: &mut sdl3::EventPump) -> bool {
+fn is_sdl_quit(sdl_eventpump: &mut sdl2::EventPump) -> bool {
     for e in sdl_eventpump.poll_iter() {
         match e {
-            sdl3::event::Event::Quit { .. } => return true,
-            sdl3::event::Event::KeyDown { keycode, .. } => {
+            sdl2::event::Event::Quit { .. } => return true,
+            sdl2::event::Event::KeyDown { keycode, .. } => {
                 if keycode == Some(Keycode::Escape) {
                     return true;
                 }

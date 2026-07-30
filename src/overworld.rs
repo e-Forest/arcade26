@@ -1,4 +1,4 @@
-use sdl3::{pixels::Color, rect::Rect, render::WindowCanvas};
+use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
     BallGame, DEBUGMODE, FightGame, JumpGame, Player, PlayerId, START_GAME_TIME_MS, Scene,

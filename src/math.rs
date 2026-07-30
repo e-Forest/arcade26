@@ -1,7 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 
 use rand::random_range;
-use sdl3::rect::{Point, Rect};
+use sdl2::rect::{Point, Rect};
 
 const NORMALIZE_THRESHOLD: f32 = 0.1;
 

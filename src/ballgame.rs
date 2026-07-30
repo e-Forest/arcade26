@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use rand::seq::SliceRandom;
-use sdl3::{pixels::Color, rect::Rect, render::WindowCanvas};
+use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
     BALLGAME_BALL_GRAVITY_HIGH, BALLGAME_BALL_GRAVITY_LOW, BALLGAME_BALL_GROUND_BOUCE_FORCE,
@@ -442,7 +442,8 @@ impl Ball {
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         let p = self.pos.as_point();
         let t = &textures.ball;
-        let (w, h) = (t.width(), t.height());
+        let q = t.query();
+        let (w, h) = (q.width, q.height);
         let dst = Rect::new(p.x - w as i32 / 2, p.y - h as i32 / 2, w, h);
         canvas.copy(t, None, dst).unwrap();
 

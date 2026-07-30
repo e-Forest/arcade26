@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use rand::random_range;
-use sdl3::{
+use sdl2::{
     pixels::Color,
     rect::{Point, Rect},
     render::WindowCanvas,
