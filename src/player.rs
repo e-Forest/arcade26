@@ -123,6 +123,8 @@ impl Player {
             }
             _ => (),
         }
+        self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
+        self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
     }
 
     pub fn update_fighter(&mut self, input: &ArcadeInput, gamepad_id: usize) -> Vec<PlayerMessage> {
@@ -277,6 +279,9 @@ impl Player {
             }
             _ => (),
         }
+
+        self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
+        self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
 
         out
     }

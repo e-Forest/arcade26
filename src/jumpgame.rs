@@ -231,19 +231,17 @@ impl JumpGame {
         );
 
         // Score
-        for (i, player) in self
-            .players
-            .iter()
-            .filter(|x| x.team != Team::None)
-            .enumerate()
-        {
+        for (gamepad_id, player) in self.players.iter().enumerate() {
+            if player.team == Team::None {
+                continue;
+            }
             let color = player.team.color();
             canvas.set_draw_color(color);
             canvas
                 .fill_rect(get_score_rect(
                     0,
-                    i as i32 * SCORE_RECT_HEIGHT as i32,
-                    self.score[i],
+                    gamepad_id as i32 * SCORE_RECT_HEIGHT as i32,
+                    self.score[gamepad_id],
                 ))
                 .unwrap();
         }
