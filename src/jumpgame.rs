@@ -11,8 +11,8 @@ use sdl2::{
 use crate::{
     DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, JUMPGAME_GROUND_Y,
     JUMPGAME_STUNNING_LOW_POSX, JUMPGAME_STUNNING_TIME_HIGH, JUMPGAME_STUNNING_TIME_LOW,
-    METER_RUN_SPEED, OUTRO_TIME_MS, PARALAX_FACTOR, Particle, Player, SCORE_MAX, SCORE_RECT_HEIGHT,
-    Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    JUMPGAME_TIME_MS, METER_RUN_SPEED, OUTRO_TIME_MS, PARALAX_FACTOR, Particle, Player, SCORE_MAX,
+    SCORE_RECT_HEIGHT, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     math::{Vec2, rect_shifted},
     overworld::OverWorld,
@@ -51,7 +51,7 @@ impl JumpGame {
         Self {
             state: GameState::Intro,
             into_timer: Timer::new(INTRO_TIME_MS),
-            game_timer: Timer::new(GAME_TIME_MS),
+            game_timer: Timer::new(JUMPGAME_TIME_MS),
             outro_timer: Timer::new(OUTRO_TIME_MS),
             players,
             meter: 0.,
@@ -80,7 +80,6 @@ impl JumpGame {
                 self.handle_players_to_obsitcles();
                 self.handle_score();
                 self.score_max += VIRTUAL_WIDHT;
-                println!("sm: {}", self.score_max);
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {

@@ -34,6 +34,9 @@ pub struct FightGame {
     score_blue: u32,
     score_red: u32,
     platsch_template: AsePlayer,
+    flag_aseplayer: AsePlayer,
+    is_scoring_blue: bool,
+    is_scoring_red: bool,
 }
 
 impl FightGame {
@@ -65,6 +68,7 @@ impl FightGame {
         ];
 
         let platsch_json_template = AsePlayer::from_json("assets/platsch.json");
+        let flag_aseplayer = AsePlayer::from_json("assets/flag.json");
 
         Self {
             state: GameState::Intro,
@@ -76,14 +80,19 @@ impl FightGame {
             score_area,
             ground_boxes,
             platsch_template: platsch_json_template,
+            flag_aseplayer,
             platsches: Vec::new(),
             particles: Vec::new(),
             score_blue: 0,
             score_red: 0,
+            is_scoring_blue: false,
+            is_scoring_red: false,
         }
     }
 
     pub fn update(&mut self, input: &ArcadeInput, delta_ms: u32) -> SceneMessage {
+        self.flag_aseplayer.play_tag("idle", true);
+
         // - Game Time -
         match self.state {
             GameState::Intro => {
@@ -102,6 +111,12 @@ impl FightGame {
                 self.handle_players_to_dashingplayers();
                 self.handle_players_to_groundboxes();
                 self.handle_players_to_scorearea(delta_ms);
+                // let p = Particle::new(
+                //     Vec2::from_point(self.score_area.center()),
+                //     Color::WHITE,
+                //     Vec2::random_normalized() * 5.,
+                // );
+                // self.particles.push(p);
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
@@ -132,6 +147,8 @@ impl FightGame {
     fn handle_players_to_scorearea(&mut self, delta_ms: u32) {
         let score_rect_red = get_score_rect(0, SCORE_RECT_HEIGHT as i32, self.score_red);
         let score_rect_blue = get_score_rect(0, 0, self.score_blue);
+        self.is_scoring_blue = false;
+        self.is_scoring_red = false;
         for player in &self.players {
             let mut color = match player.team {
                 Team::Blue => Color::BLUE,
@@ -144,6 +161,7 @@ impl FightGame {
             if self.score_area.contains_point(player.pos.as_point()) {
                 match player.team {
                     Team::Blue => {
+                        self.is_scoring_blue = true;
                         self.score_blue += delta_ms;
                         self.particles.push(Particle::new(
                             Vec2::new(
@@ -155,6 +173,7 @@ impl FightGame {
                         ));
                     }
                     Team::Red => {
+                        self.is_scoring_red = true;
                         self.score_red += delta_ms;
                         self.particles.push(Particle::new(
                             Vec2::new(
@@ -333,6 +352,25 @@ impl FightGame {
         for platsch in &self.platsches {
             platsch.draw(canvas, textures);
         }
+
+        // - Flag -
+        let flag_pos = Vec2::from_point(self.score_area.center().offset(21, -14));
+        let texture = if self.is_scoring_blue && self.is_scoring_red {
+            &textures.flag_mixed
+        } else if self.is_scoring_blue {
+            &textures.flag_blue
+        } else if self.is_scoring_red {
+            &textures.flag_red
+        } else {
+            &textures.flag_white
+        };
+        self.flag_aseplayer.draw_current_frame(
+            canvas,
+            flag_pos,
+            texture,
+            AnchorPosition::BottomCenter,
+            false,
+        );
 
         // - Player anzeigen (y-ordered) -
         let mut player_y_ordered = Vec::new();

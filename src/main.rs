@@ -81,6 +81,7 @@ pub const ARROW_SPAWN_DISTANCE: f32 = 8.;
 pub const ARROW_SPAWN_OFFSET_Y: f32 = 6.;
 
 // - Jumpgame -
+pub const JUMPGAME_TIME_MS: u32 = 1000 * 90; // 90sec
 pub const JUMPGAME_STUNNING_LOW_POSX: f32 = 50.;
 pub const JUMPGAME_STUNNING_TIME_LOW: u64 = 200;
 pub const JUMPGAME_STUNNING_TIME_HIGH: u64 = 800;
@@ -93,7 +94,7 @@ pub const JUMPGAME_LOW_GRAVITY: f32 = 0.2;
 pub const JUMPGAME_HIGHT_GRAVITY: f32 = 0.4;
 pub const JUMP_MAX_HOLD: Duration = Duration::from_millis(200);
 
-pub const SCORE_MAX: u32 = GAME_TIME_MS / (1000 / FIXED_FPS) * VIRTUAL_WIDHT; // gemessen: 2.360.000
+pub const SCORE_MAX: u32 = JUMPGAME_TIME_MS / (1000 / FIXED_FPS) * VIRTUAL_WIDHT; // gemessen: 2.360.000
 
 pub const PARALAX_FACTOR: i32 = 5;
 pub const METER_RUN_SPEED: f32 = 2.;
@@ -125,7 +126,7 @@ pub const BALLGAME_RING_LOWER_EDGE: f32 = 67.;
 
 pub const BALLGAME_PLAYER2BALL_VELO_FACTOR: f32 = 0.8;
 
-pub const BALLGAME_DASH_TIME: u64 = 200;
+pub const BALLGAME_DASH_TIME: u64 = 100;
 pub const BALLGAME_DASH_SPEED: f32 = 3.8;
 
 pub fn main() {
@@ -190,11 +191,6 @@ pub fn main() {
             break;
         }
         input.update();
-
-        if input.button_pressed(player::PlayerId(0), Button::Start) {
-            println!("-ende-");
-            break;
-        }
 
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
@@ -370,6 +366,10 @@ pub struct Textures<'a> {
     // pub player_skin1: Texture<'a>,
     // pub player_skin2: Texture<'a>,
     // pub player_skin3: Texture<'a>,
+    pub flag_white: Texture<'a>,
+    pub flag_red: Texture<'a>,
+    pub flag_blue: Texture<'a>,
+    pub flag_mixed: Texture<'a>,
     pub overworld_background: Texture<'a>,
     pub jumpgame_background: Texture<'a>,
     pub jumpgame_paralax: Texture<'a>,
@@ -405,6 +405,10 @@ impl<'a> Textures<'a> {
 
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            flag_white: creator.load_texture("assets/flag_white.png").unwrap(),
+            flag_blue: creator.load_texture("assets/flag_blue.png").unwrap(),
+            flag_red: creator.load_texture("assets/flag_red.png").unwrap(),
+            flag_mixed: creator.load_texture("assets/flag_mixed.png").unwrap(),
             no_winner: creator.load_texture("assets/outro_no-winner.png").unwrap(),
             scored_red: creator.load_texture("assets/scored_red.png").unwrap(),
             scored_blue: creator.load_texture("assets/scored_blue.png").unwrap(),

@@ -423,6 +423,13 @@ impl Player {
             PlayerState::Dash => {
                 self.ase_player.play_tag("dash", true);
 
+                // Long-Dash
+                if input.button_pressed(PlayerId(gamepad_id), Button::South)
+                    && self.jump_start_time.elapsed() < JUMP_MAX_HOLD
+                {
+                    self.dash_end_time = Instant::now() + Duration::from_millis(BALLGAME_DASH_TIME);
+                }
+
                 // Velo
                 self.velo = self.dash_direction.normalized() * BALLGAME_DASH_SPEED;
 
@@ -462,7 +469,7 @@ impl Player {
                 self.aim_direction = input_dir;
                 if is_input_just_jump {
                     self.stamina -= 1.;
-                    self.dash_end_time = Instant::now() + Duration::from_millis(BALLGAME_DASH_TIME);
+                    self.jump_start_time = Instant::now();
                     self.state = PlayerState::Dash;
                 }
             }
