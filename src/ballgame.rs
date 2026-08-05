@@ -4,14 +4,15 @@ use rand::seq::SliceRandom;
 use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
-    BALLGAME_BALL_GRAVITY_HIGH, BALLGAME_BALL_GRAVITY_LOW, BALLGAME_BALL_GROUND_BOUCE_FORCE,
-    BALLGAME_BALL_PLAYER_BOUCE_FORCE, BALLGAME_BALL_TIME_BETWEEN_COLLISIONS,
-    BALLGAME_BALL_WALL_BOUCE_FORCE, BALLGAME_BALL_X_DISTANCE_TO_SCORE,
-    BALLGAME_BALL_X_DISTANCE_TO_WALLS, BALLGAME_BALL_XBRAKE,
+    BALL_RADIUS, BALLGAME_BALL_GRAVITY_HIGH, BALLGAME_BALL_GRAVITY_LOW,
+    BALLGAME_BALL_GROUND_BOUCE_FORCE, BALLGAME_BALL_PLAYER_BOUCE_FORCE,
+    BALLGAME_BALL_TIME_BETWEEN_COLLISIONS, BALLGAME_BALL_WALL_BOUCE_FORCE,
+    BALLGAME_BALL_X_DISTANCE_TO_SCORE, BALLGAME_BALL_XBRAKE,
     BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY, BALLGAME_GROUND_Y, BALLGAME_PLAYER_GRAVITY_HIGH,
     BALLGAME_PLAYER2BALL_VELO_FACTOR, BALLGAME_RING_LOWER_EDGE, BALLGAME_RING_UPPER_EDGE,
-    DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, NEXTROUND_TIME_MS, OUTRO_TIME_MS, Particle,
-    Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    BALLGAME_WALL_X, DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, NEXTROUND_TIME_MS,
+    OUTRO_TIME_MS, PLAYER_SIZE, Particle, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT,
+    VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     math::{Vec2, lerp, rect_shifted},
     overworld::OverWorld,
@@ -41,24 +42,28 @@ impl BallGame {
     pub fn new(player_in_game: Vec<Team>) -> Self {
         let mut players = Vec::new();
 
-        let mut start_positions_red = vec![Vec2::new(80., 150.), Vec2::new(120., 150.)];
+        let mut start_positions_red = vec![Vec2::new(80., 150.), Vec2::new(100., 150.)];
         let mut start_positions_blue = vec![
             Vec2::new(VIRTUAL_WIDHT as f32 - 80., 150.),
-            Vec2::new(VIRTUAL_WIDHT as f32 - 120., 150.),
+            Vec2::new(VIRTUAL_WIDHT as f32 - 100., 150.),
         ];
 
         let ring_area_red = Rect::new(
             0,
-            BALLGAME_RING_UPPER_EDGE as i32,
-            BALLGAME_BALL_X_DISTANCE_TO_WALLS as u32,
-            BALLGAME_RING_LOWER_EDGE as u32 - BALLGAME_RING_UPPER_EDGE as u32,
+            BALLGAME_RING_UPPER_EDGE as i32 + BALL_RADIUS as i32,
+            BALLGAME_WALL_X as u32 + BALL_RADIUS as u32,
+            BALLGAME_RING_LOWER_EDGE as u32
+                - BALLGAME_RING_UPPER_EDGE as u32
+                - (BALL_RADIUS * 2.) as u32,
         );
 
         let ring_area_blue = Rect::new(
-            VIRTUAL_WIDHT as i32 - BALLGAME_BALL_X_DISTANCE_TO_WALLS as i32,
-            BALLGAME_RING_UPPER_EDGE as i32,
-            BALLGAME_BALL_X_DISTANCE_TO_WALLS as u32,
-            BALLGAME_RING_LOWER_EDGE as u32 - BALLGAME_RING_UPPER_EDGE as u32,
+            VIRTUAL_WIDHT as i32 - BALLGAME_WALL_X as i32 - BALL_RADIUS as i32,
+            BALLGAME_RING_UPPER_EDGE as i32 + BALL_RADIUS as i32,
+            BALLGAME_WALL_X as u32 + BALL_RADIUS as u32,
+            BALLGAME_RING_LOWER_EDGE as u32
+                - BALLGAME_RING_UPPER_EDGE as u32
+                - (BALL_RADIUS * 2.) as u32,
         );
 
         for (_i, team) in player_in_game.iter().enumerate() {
@@ -76,8 +81,13 @@ impl BallGame {
 
         let ball = Ball::new(Vec2::new(
             VIRTUAL_WIDHT as f32 / 2.,
-            VIRTUAL_HEIGHT as f32 * 0.2,
+            VIRTUAL_HEIGHT as f32 * 0.8,
         ));
+
+        // - Ball fliegt in rechten Ring -
+        // let mut ball = Ball::new(Vec2::new(80., 30.));
+        // ball.velo = Vec2::new(-1., 0.6).normalized() * 3.;
+
         Self {
             state: GameState::Intro,
             into_timer: Timer::new(INTRO_TIME_MS),
@@ -108,8 +118,12 @@ impl BallGame {
             }
             GameState::InGame => {
                 self.update_players(input);
-                self.ball.update();
-                self.handle_ball_to_rings();
+                if DEBUGMODE {
+                    self.ball.update(Some(input));
+                } else {
+                    self.ball.update(None);
+                }
+                self.handle_ball_to_rings_and_borders();
 
                 // -> NextRound
                 self.change_to_nextround();
@@ -154,31 +168,37 @@ impl BallGame {
         SceneMessage::None
     }
 
-    fn handle_ball_to_rings(&mut self) {
+    fn handle_ball_to_rings_and_borders(&mut self) {
         let is_in_red_ring = self.ring_area_red.contains_point(self.ball.pos.as_point());
         let is_in_blue_ring = self.ring_area_blue.contains_point(self.ball.pos.as_point());
 
-        self.ball.pos.y = self.ball.pos.y.clamp(0., BALLGAME_GROUND_Y as f32);
+        self.ball.pos.y = self
+            .ball
+            .pos
+            .y
+            .clamp(0., BALLGAME_GROUND_Y as f32 - BALL_RADIUS);
 
-        if self.ball.pos.y == BALLGAME_GROUND_Y as f32 {
+        if self.ball.pos.y == BALLGAME_GROUND_Y as f32 - BALL_RADIUS {
             self.ball.velo.y = -BALLGAME_BALL_GROUND_BOUCE_FORCE;
         }
 
-        if self.ball.pos.x < BALLGAME_BALL_X_DISTANCE_TO_WALLS {
+        if self.ball.pos.x < BALLGAME_WALL_X + BALL_RADIUS {
             if !is_in_red_ring {
-                self.ball.pos.x = BALLGAME_BALL_X_DISTANCE_TO_WALLS;
-                self.ball.velo.x = BALLGAME_BALL_WALL_BOUCE_FORCE;
                 if self.ball.is_inring_old {
                     self.ball.velo.y = -self.ball.velo.y;
+                } else {
+                    self.ball.pos.x = BALLGAME_WALL_X + BALL_RADIUS;
+                    self.ball.velo.x = BALLGAME_BALL_WALL_BOUCE_FORCE;
                 }
             }
         }
-        if self.ball.pos.x > VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_WALLS {
+        if self.ball.pos.x > VIRTUAL_WIDHT as f32 - BALLGAME_WALL_X - BALL_RADIUS {
             if !is_in_blue_ring {
-                self.ball.pos.x = VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_WALLS;
-                self.ball.velo.x = -BALLGAME_BALL_WALL_BOUCE_FORCE;
                 if self.ball.is_inring_old {
                     self.ball.velo.y = -self.ball.velo.y;
+                } else {
+                    self.ball.pos.x = VIRTUAL_WIDHT as f32 - BALLGAME_WALL_X - BALL_RADIUS;
+                    self.ball.velo.x = -BALLGAME_BALL_WALL_BOUCE_FORCE;
                 }
             }
         }
@@ -234,12 +254,15 @@ impl BallGame {
             let Some(player) = self.players.get(i) else {
                 continue;
             };
+            if player.team == Team::None {
+                continue;
+            }
             let player_box = rect_shifted(player.colision_box_small, player.pos.as_point());
             let ball_box = rect_shifted(self.ball.collision_box, self.ball.pos.as_point());
             let player_center = Vec2::from_point(player_box.center());
             let ball_center = Vec2::from_point(ball_box.center());
 
-            if player_center.distance(&ball_center) < 18. {
+            if player_center.distance(&ball_center) < BALL_RADIUS + (PLAYER_SIZE / 2.) {
                 let dir = player_center.direction(&ball_center);
                 self.ball.velo = dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
                 if player.velo.y < 0. {
@@ -410,6 +433,7 @@ pub struct Ball {
     collision_box: Rect,
     last_collision: Instant,
     is_inring_old: bool,
+    // radius: f32,
 }
 
 impl Ball {
@@ -421,9 +445,10 @@ impl Ball {
             collision_box: Rect::new(-8, -8, 16, 16),
             last_collision: Instant::now(),
             is_inring_old: false,
+            // radius: 8.,
         }
     }
-    pub fn update(&mut self) {
+    pub fn update(&mut self, opt_input: Option<&ArcadeInput>) {
         let gravity = if self.pos.y > BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY {
             BALLGAME_BALL_GRAVITY_LOW
         } else {
@@ -431,11 +456,12 @@ impl Ball {
         };
         self.velo.y += gravity;
         self.velo.x = lerp(self.velo.x, 0., BALLGAME_BALL_XBRAKE);
-        // if self.velo.x > 1. {
-        //     self.velo.x -= BALLGAME_BALL_XBRAKE;
-        // } else if self.velo.x < 1. {
-        //     self.velo.x += BALLGAME_BALL_XBRAKE;
-        // }
+        if let Some(input) = opt_input {
+            self.velo = Vec2::new(
+                input.axis(PlayerId(0), gilrs::Axis::LeftStickX),
+                -input.axis(PlayerId(0), gilrs::Axis::LeftStickY),
+            )
+        }
         self.pos = self.pos + self.velo;
     }
 

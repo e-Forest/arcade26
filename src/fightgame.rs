@@ -54,7 +54,8 @@ impl FightGame {
                 Team::Red => start_positions_red.remove(0),
                 _ => Vec2::zero(),
             };
-            let p = Player::new(start_pos, team);
+            let mut p = Player::new(start_pos, team);
+            p.stamina = 3.;
             players.push(p);
         }
 
@@ -276,6 +277,9 @@ impl FightGame {
         let mut player_stunnings = Vec::new();
         // let mut arrows_to_remove = Vec::new();
         for (player_idx, player) in self.players.iter().enumerate() {
+            if player.team == Team::None {
+                continue;
+            }
             for (_arrow_idx, arrow) in self.arrows.iter_mut().enumerate() {
                 if player.team == arrow.team {
                     continue;
@@ -382,6 +386,9 @@ impl FightGame {
         player_y_ordered.sort_by(|(_a_idx, a_y), (_b_idx, b_y)| a_y.cmp(b_y));
         for (idx, _y) in player_y_ordered {
             if let Some(player) = self.players.get(idx) {
+                if player.team == Team::None {
+                    continue;
+                }
                 player.draw(canvas, textures, None, idx)
             }
         }

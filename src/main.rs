@@ -54,7 +54,8 @@ pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 
 pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
 // pub const GAME_TIME_MS: u32 = 5000;
-pub const INTRO_TIME_MS: u32 = 3000;
+// pub const INTRO_TIME_MS: u32 = 3000;
+pub const INTRO_TIME_MS: u32 = 1000;
 pub const OUTRO_TIME_MS: u32 = 5000;
 pub const START_GAME_TIME_MS: u32 = 3000;
 pub const NEXTROUND_TIME_MS: u32 = 2000;
@@ -62,6 +63,8 @@ pub const NEXTROUND_TIME_MS: u32 = 2000;
 pub const SCORE_RECT_HEIGHT: u32 = 3;
 
 pub const GIVE_UP_TIME_MS: u32 = 3000;
+
+pub const PLAYER_SIZE: f32 = 16.;
 
 // - Fightgame -
 pub const FIGHTGAME_PLAYER_SPEED: f32 = 1.0;
@@ -100,6 +103,7 @@ pub const PARALAX_FACTOR: i32 = 5;
 pub const METER_RUN_SPEED: f32 = 2.;
 
 // - Ballgame -
+pub const BALL_RADIUS: f32 = 10.;
 pub const BALLGAME_PLAYER_SPEED: f32 = 2.0;
 pub const BALLGAME_GROUND_Y: u32 = 150;
 
@@ -113,16 +117,16 @@ pub const BALLGAME_MAX_STAMINA: f32 = 3.;
 pub const BALLGAME_BALL_GRAVITY_LOW: f32 = 0.1;
 pub const BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY: f32 = 30.;
 pub const BALLGAME_BALL_GRAVITY_HIGH: f32 = 0.2;
-pub const BALLGAME_BALL_XBRAKE: f32 = 0.012;
+pub const BALLGAME_BALL_XBRAKE: f32 = 0.014;
 pub const BALLGAME_BALL_GROUND_BOUCE_FORCE: f32 = 3.;
 pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 2.;
 pub const BALLGAME_BALL_WALL_BOUCE_FORCE: f32 = 1.;
-pub const BALLGAME_BALL_X_DISTANCE_TO_WALLS: f32 = 42.;
-pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = BALLGAME_BALL_X_DISTANCE_TO_WALLS - 8.;
+pub const BALLGAME_WALL_X: f32 = 36.;
+pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = BALLGAME_WALL_X - 4.;
 pub const BALLGAME_BALL_TIME_BETWEEN_COLLISIONS: Duration = Duration::from_millis(200);
 
-pub const BALLGAME_RING_UPPER_EDGE: f32 = 26.;
-pub const BALLGAME_RING_LOWER_EDGE: f32 = 67.;
+pub const BALLGAME_RING_UPPER_EDGE: f32 = 20.;
+pub const BALLGAME_RING_LOWER_EDGE: f32 = 73.;
 
 pub const BALLGAME_PLAYER2BALL_VELO_FACTOR: f32 = 0.8;
 
@@ -167,14 +171,14 @@ pub fn main() {
 
     let textures = Textures::new(&creator);
 
-    let mut current_scene = Scene::OverWorld(OverWorld::new());
+    // let mut current_scene = Scene::OverWorld(OverWorld::new());
     // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
-    // let mut current_scene = Scene::BallGame(BallGame::new(vec![
-    //     Team::Blue,
-    //     Team::Red,
-    //     Team::Blue,
-    //     Team::Red,
-    // ]));
+    let mut current_scene = Scene::BallGame(BallGame::new(vec![
+        Team::Blue,
+        Team::Red,
+        Team::Blue,
+        Team::Red,
+    ]));
     // let mut current_scene = Scene::FightGame(FightGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
