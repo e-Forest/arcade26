@@ -45,7 +45,7 @@ use time::*;
 pub mod player;
 use player::*;
 
-pub const DEBUGMODE: bool = true;
+pub const DEBUGMODE: bool = false;
 pub const FIXED_FPS: u32 = 60;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
@@ -107,7 +107,7 @@ pub const JUMP_MAX_HOLD: Duration = Duration::from_millis(200);
 pub const SCORE_MAX: u32 = JUMPGAME_TIME_MS / (1000 / FIXED_FPS) * VIRTUAL_WIDHT; // gemessen: 2.360.000
 
 pub const PARALAX_FACTOR: i32 = 5;
-pub const METER_RUN_SPEED: f32 = 2.;
+pub const METER_RUN_SPEED: f32 = 2.; // * 60.;
 
 // - Ballgame -
 pub const BALL_RADIUS: f32 = 10.;
@@ -160,7 +160,12 @@ pub fn main() {
     }
     window.set_fullscreen(FullscreenType::Desktop).unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let mut canvas = window
+        .into_canvas()
+        // .accelerated()
+        // .present_vsync()
+        .build()
+        .unwrap();
     let creator = canvas.texture_creator();
 
     canvas.set_draw_color(Color::RGB(0, 255, 255));
@@ -230,7 +235,7 @@ pub fn main() {
                         ball_game.draw(&mut tcnv, &textures);
                     }
                     Scene::JumpGame(jump_game) => {
-                        scene_msg = jump_game.update(&input, &audios);
+                        scene_msg = jump_game.update(&input, &audios, fps_guard.dt());
                         jump_game.draw(&mut tcnv, &textures);
                     }
                     Scene::FightGame(fight_game) => {

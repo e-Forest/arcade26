@@ -123,6 +123,10 @@ impl FpsGuard {
         self.delta_time.as_millis() as u32
     }
 
+    pub fn dt(&self) -> f32 {
+        self.delta_time.as_secs_f32()
+    }
+
     pub fn draw(&self, cnv: &mut WindowCanvas, x: i32, y: i32) {
         const WIDTH: u32 = 20;
         const HEIGHT: u32 = 3;

@@ -70,7 +70,7 @@ impl JumpGame {
         }
     }
 
-    pub fn update(&mut self, input: &ArcadeInput, audios: &Audios) -> SceneMessage {
+    pub fn update(&mut self, input: &ArcadeInput, audios: &Audios, _dt: f32) -> SceneMessage {
         if check_idle_timer(input, &mut self.idle_timer) {
             return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
         }
@@ -83,9 +83,10 @@ impl JumpGame {
                 }
             }
             GameState::InGame => {
+                // self.meter -= METER_RUN_SPEED * _dt;
                 self.meter -= METER_RUN_SPEED;
                 self.update_players(input, audios);
-                self.update_obsticles();
+                self.update_obsticles(_dt);
                 self.update_particles();
                 self.handle_players_to_obsitcles(audios);
                 self.handle_score();
@@ -161,9 +162,12 @@ impl JumpGame {
         }
     }
 
-    fn update_obsticles(&mut self) {
+    fn update_obsticles(&mut self, _dt: f32) {
         for obsticle in self.obsticles.iter_mut() {
+            // obsticle.pos.x -= METER_RUN_SPEED * _dt;
             obsticle.pos.x -= METER_RUN_SPEED;
+
+            // obsticle.pos.x = (self.meter as i32 % VIRTUAL_WIDHT as i32) as f32; // METER_RUN_SPEED;
         }
 
         if self.obsticle_spawn_time < Instant::now() {
@@ -178,9 +182,15 @@ impl JumpGame {
                 _ => ObsticleEnum::MarketCart,
             };
 
+            // let round_decimal = self.meter - (self.meter as i32) as f32;
+            let round_decimal = self.meter - self.meter.trunc();
+
             let obsticle = Obsticle::new(
                 obsticle_enum,
-                Vec2::new(VIRTUAL_WIDHT as f32 + 64., JUMPGAME_GROUND_Y as f32),
+                Vec2::new(
+                    VIRTUAL_WIDHT as f32 + 64. + round_decimal,
+                    JUMPGAME_GROUND_Y as f32,
+                ),
             );
             self.obsticles.push(obsticle);
         }
