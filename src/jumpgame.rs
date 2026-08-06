@@ -9,15 +9,19 @@ use sdl2::{
 };
 
 use crate::{
-    DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, JUMPGAME_GROUND_Y,
-    JUMPGAME_STUNNING_LOW_POSX, JUMPGAME_STUNNING_TIME_HIGH, JUMPGAME_STUNNING_TIME_LOW,
-    JUMPGAME_TIME_MS, METER_RUN_SPEED, OUTRO_TIME_MS, PARALAX_FACTOR, Particle, Player, SCORE_MAX,
-    SCORE_RECT_HEIGHT, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    DEBUGMODE, GAME_TIME_MS, GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS,
+    JUMPGAME_GROUND_Y, JUMPGAME_STUNNING_LOW_POSX, JUMPGAME_STUNNING_TIME_HIGH,
+    JUMPGAME_STUNNING_TIME_LOW, JUMPGAME_TIME_MS, METER_RUN_SPEED, OUTRO_TIME_MS, PARALAX_FACTOR,
+    Particle, Player, SCORE_MAX, SCORE_RECT_HEIGHT, Scene, SceneMessage, Team, Textures,
+    VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
+    check_idle_timer,
     math::{Vec2, rect_shifted},
     overworld::OverWorld,
     player::{PlayerId, PlayerState, is_only_one_team_in_game},
+    screensaver::ScreenSaver,
     time::Timer,
+    warn_idle_timer,
 };
 
 const OBSTICLE_SPAWN_TIME_MS_MIN: u64 = 500;
@@ -35,6 +39,7 @@ pub struct JumpGame {
     particles: Vec<Particle>,
     state: GameState,
     score_max: u32,
+    idle_timer: Timer,
 }
 
 impl JumpGame {
@@ -60,10 +65,14 @@ impl JumpGame {
             score: [0; 4],
             particles: Vec::new(),
             score_max: 0,
+            idle_timer: Timer::new(IDLE_TIME_TO_SCREENSAVE_MS),
         }
     }
 
     pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
+        if check_idle_timer(input, &mut self.idle_timer) {
+            return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
+        }
         match self.state {
             GameState::Intro => {
                 // -> InGame
@@ -302,6 +311,8 @@ impl JumpGame {
             }
             _ => (),
         }
+
+        warn_idle_timer(&self.idle_timer, canvas);
 
         // DEBUG
         if DEBUGMODE {

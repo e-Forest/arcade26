@@ -9,15 +9,18 @@ use sdl2::{
 
 use crate::{
     Arrow, DEBUGMODE, FIGHTGAME_DASHTIME_AFTER_HIT_MS, FIGHTGAME_STUNNING_TIME, GAME_TIME_MS,
-    GameState, INTRO_TIME_MS, OUTRO_TIME_MS, Particle, Player, SCORE_RECT_HEIGHT,
-    STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, Scene, SceneMessage, Team, Textures,
-    VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS, OUTRO_TIME_MS, Particle, Player,
+    SCORE_RECT_HEIGHT, STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, Scene, SceneMessage,
+    Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
+    check_idle_timer,
     math::{Vec2, middle_direction, rect_shifted},
     overworld::OverWorld,
     player::{PlayerMessage, PlayerState, is_only_one_team_in_game},
+    screensaver::ScreenSaver,
     time::Timer,
+    warn_idle_timer,
 };
 
 pub struct FightGame {
@@ -37,6 +40,7 @@ pub struct FightGame {
     flag_aseplayer: AsePlayer,
     is_scoring_blue: bool,
     is_scoring_red: bool,
+    idle_timer: Timer,
 }
 
 impl FightGame {
@@ -88,10 +92,14 @@ impl FightGame {
             score_red: 0,
             is_scoring_blue: false,
             is_scoring_red: false,
+            idle_timer: Timer::new(IDLE_TIME_TO_SCREENSAVE_MS),
         }
     }
 
     pub fn update(&mut self, input: &ArcadeInput, delta_ms: u32) -> SceneMessage {
+        if check_idle_timer(input, &mut self.idle_timer) {
+            return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
+        }
         self.flag_aseplayer.play_tag("idle", true);
 
         // - Game Time -
@@ -472,6 +480,8 @@ impl FightGame {
             }
             _ => (),
         }
+
+        warn_idle_timer(&self.idle_timer, canvas);
 
         // DEBUG
         if DEBUGMODE {

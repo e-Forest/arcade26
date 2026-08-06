@@ -3,7 +3,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
+use rand::random_range;
+use sdl2::{
+    pixels::Color,
+    rect::{Point, Rect},
+    render::WindowCanvas,
+};
 
 pub struct Timer {
     start: Instant,
@@ -48,6 +53,32 @@ impl Timer {
         canvas.fill_rect(rect).unwrap();
         canvas.set_draw_color(fore_color);
         canvas.fill_rect(inner_rect).unwrap();
+    }
+
+    pub fn draw_as_pixels(
+        &self,
+        canvas: &mut WindowCanvas,
+        rect: Rect,
+        max_points: i32,
+        color: Color,
+        start_at_percent: f32,
+    ) {
+        let mut points = Vec::new();
+        let wait_ms = self.wait_time().as_millis();
+        let remain_ms = self.remaning_time().as_millis();
+        let start_at = (wait_ms as f32 * start_at_percent) as u128;
+        if remain_ms < start_at {
+            let percent = (1. / start_at as f32 * remain_ms as f32) * 100.;
+            for _i in 0..max_points / (1 + percent as i32) {
+                let x = random_range(rect.left()..rect.right()) as i32;
+                let y = random_range(rect.top()..rect.bottom()) as i32;
+                let p = Point::new(x, y);
+                points.push(p);
+            }
+        }
+
+        canvas.set_draw_color(color);
+        canvas.draw_points(points.as_slice()).unwrap();
     }
 }
 

@@ -10,14 +10,17 @@ use crate::{
     BALLGAME_BALL_X_DISTANCE_TO_SCORE, BALLGAME_BALL_XBRAKE,
     BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY, BALLGAME_GROUND_Y, BALLGAME_PLAYER_GRAVITY_HIGH,
     BALLGAME_PLAYER2BALL_VELO_FACTOR, BALLGAME_RING_LOWER_EDGE, BALLGAME_RING_UPPER_EDGE,
-    BALLGAME_WALL_X, DEBUGMODE, GAME_TIME_MS, GameState, INTRO_TIME_MS, NEXTROUND_TIME_MS,
-    OUTRO_TIME_MS, PLAYER_SIZE, Particle, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT,
-    VIRTUAL_WIDHT,
+    BALLGAME_WALL_X, DEBUGMODE, GAME_TIME_MS, GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS,
+    NEXTROUND_TIME_MS, OUTRO_TIME_MS, PLAYER_SIZE, Particle, Scene, SceneMessage, Team, Textures,
+    VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
+    check_idle_timer,
     math::{Vec2, lerp, rect_shifted},
     overworld::OverWorld,
     player::{Player, PlayerId, PlayerState, is_only_one_team_in_game},
+    screensaver::ScreenSaver,
     time::Timer,
+    warn_idle_timer,
 };
 
 pub struct BallGame {
@@ -36,6 +39,7 @@ pub struct BallGame {
 
     ring_area_red: Rect,
     ring_area_blue: Rect,
+    idle_timer: Timer,
 }
 
 impl BallGame {
@@ -102,10 +106,14 @@ impl BallGame {
             last_scored_team: Team::None,
             ring_area_red,
             ring_area_blue,
+            idle_timer: Timer::new(IDLE_TIME_TO_SCREENSAVE_MS),
         }
     }
 
     pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
+        if check_idle_timer(input, &mut self.idle_timer) {
+            return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
+        }
         self.update_particles();
 
         match self.state {
@@ -211,11 +219,12 @@ impl BallGame {
         let is_in_red_ring = self.ring_area_red.contains_point(self.ball.pos.as_point());
         let is_in_blue_ring = self.ring_area_blue.contains_point(self.ball.pos.as_point());
 
-        if self.ball.pos.x < BALLGAME_BALL_X_DISTANCE_TO_SCORE && is_in_red_ring {
+        if self.ball.pos.x < BALLGAME_BALL_X_DISTANCE_TO_SCORE + BALL_RADIUS && is_in_red_ring {
             add_v2 = Vec2::new(-4., 0.);
             self.score_blue += 1;
             self.last_scored_team = Team::Blue;
-        } else if self.ball.pos.x > VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_SCORE
+        } else if self.ball.pos.x
+            > VIRTUAL_WIDHT as f32 - BALLGAME_BALL_X_DISTANCE_TO_SCORE - BALL_RADIUS
             && is_in_blue_ring
         {
             add_v2 = Vec2::new(4., 0.);
@@ -400,6 +409,8 @@ impl BallGame {
         for particle in &self.particles {
             particle.draw(canvas);
         }
+
+        warn_idle_timer(&self.idle_timer, canvas);
 
         // - DEBUG -
         if DEBUGMODE {

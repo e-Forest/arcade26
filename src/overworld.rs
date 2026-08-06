@@ -1,12 +1,15 @@
 use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
-    BallGame, DEBUGMODE, FightGame, JumpGame, Player, PlayerId, START_GAME_TIME_MS, Scene,
-    SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    BallGame, DEBUGMODE, FightGame, IDLE_TIME_TO_SCREENSAVE_MS, JumpGame, Player, PlayerId,
+    START_GAME_TIME_MS, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
+    check_idle_timer,
     math::{Vec2, devide_rect, rect_shifted},
+    screensaver::ScreenSaver,
     time::Timer,
+    warn_idle_timer,
 };
 
 pub struct OverWorld {
@@ -22,6 +25,7 @@ pub struct OverWorld {
     jumpgame_area_blue: Rect,
     jumpgame_area_yellow: Rect,
     jumpgame_area_green: Rect,
+    idle_timer: Timer,
 }
 
 impl<'a> OverWorld {
@@ -53,9 +57,13 @@ impl<'a> OverWorld {
             ballgame_area_red: ballgame_devided_rect[1],
             fightgame_area_blue: fightgame_devided_rect[0],
             fightgame_area_red: fightgame_devided_rect[1],
+            idle_timer: Timer::new(IDLE_TIME_TO_SCREENSAVE_MS),
         }
     }
     pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
+        if check_idle_timer(input, &mut self.idle_timer) {
+            return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
+        }
         // - Count Players at Areas -
         let players_at_ballgame_red = count_players_at_area(&self.players, self.ballgame_area_red);
         let players_at_ballgame_blue =
@@ -223,6 +231,8 @@ impl<'a> OverWorld {
             Color::GREEN,
             Color::RED,
         );
+
+        warn_idle_timer(&self.idle_timer, canvas);
 
         if DEBUGMODE {}
     }

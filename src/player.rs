@@ -565,11 +565,12 @@ impl Player {
 
         // Give Up Timer
         if self.is_upgiving {
-            self.give_up_timer.draw(
+            self.give_up_timer.draw_as_pixels(
                 canvas,
                 Rect::from_center(self.pos.as_point().offset(0, -8), 16, 16),
-                Color::RED,
-                Color::GREEN,
+                16 * 16,
+                Color::BLACK,
+                1.,
             );
         }
 

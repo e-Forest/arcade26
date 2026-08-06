@@ -35,6 +35,9 @@ use fightgame::*;
 pub mod jumpgame;
 use jumpgame::*;
 
+pub mod screensaver;
+use screensaver::*;
+
 pub mod time;
 use time::*;
 
@@ -53,9 +56,7 @@ pub const INPUT_AXIS_THRESHOLD: f32 = 0.1;
 pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 
 pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
-// pub const GAME_TIME_MS: u32 = 5000;
-// pub const INTRO_TIME_MS: u32 = 3000;
-pub const INTRO_TIME_MS: u32 = 1000;
+pub const INTRO_TIME_MS: u32 = 3000;
 pub const OUTRO_TIME_MS: u32 = 5000;
 pub const START_GAME_TIME_MS: u32 = 3000;
 pub const NEXTROUND_TIME_MS: u32 = 2000;
@@ -64,7 +65,12 @@ pub const SCORE_RECT_HEIGHT: u32 = 3;
 
 pub const GIVE_UP_TIME_MS: u32 = 3000;
 
+pub const LOGO_BLINK_MS: u32 = 5000;
+
 pub const PLAYER_SIZE: f32 = 16.;
+pub const LOGO_WH: (u32, u32) = (92, 20);
+
+pub const IDLE_TIME_TO_SCREENSAVE_MS: u32 = 20000;
 
 // - Fightgame -
 pub const FIGHTGAME_PLAYER_SPEED: f32 = 1.0;
@@ -114,15 +120,15 @@ pub const BALLGAME_PLAYER_GRAVITY_HIGH: f32 = 0.3;
 pub const BALLGAME_PLAYER_DISTANCE_TO_WALLS: f32 = 30.;
 pub const BALLGAME_MAX_STAMINA: f32 = 3.;
 
-pub const BALLGAME_BALL_GRAVITY_LOW: f32 = 0.1;
+pub const BALLGAME_BALL_GRAVITY_LOW: f32 = 0.09;
 pub const BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY: f32 = 30.;
-pub const BALLGAME_BALL_GRAVITY_HIGH: f32 = 0.2;
-pub const BALLGAME_BALL_XBRAKE: f32 = 0.014;
+pub const BALLGAME_BALL_GRAVITY_HIGH: f32 = 0.18;
+pub const BALLGAME_BALL_XBRAKE: f32 = 0.016;
 pub const BALLGAME_BALL_GROUND_BOUCE_FORCE: f32 = 3.;
 pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 2.;
 pub const BALLGAME_BALL_WALL_BOUCE_FORCE: f32 = 1.;
 pub const BALLGAME_WALL_X: f32 = 36.;
-pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = BALLGAME_WALL_X - 4.;
+pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = 22.; // BALLGAME_WALL_X - 4.;
 pub const BALLGAME_BALL_TIME_BETWEEN_COLLISIONS: Duration = Duration::from_millis(200);
 
 pub const BALLGAME_RING_UPPER_EDGE: f32 = 20.;
@@ -169,16 +175,17 @@ pub fn main() {
     rendertarget.set_blend_mode(BlendMode::Blend);
     rendertarget.set_scale_mode(ScaleMode::Nearest);
 
-    let textures = Textures::new(&creator);
+    let mut textures = Textures::new(&creator);
 
+    let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
     // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
-    let mut current_scene = Scene::BallGame(BallGame::new(vec![
-        Team::Blue,
-        Team::Red,
-        Team::Blue,
-        Team::Red,
-    ]));
+    // let mut current_scene = Scene::BallGame(BallGame::new(vec![
+    //     Team::Blue,
+    //     Team::Red,
+    //     Team::Blue,
+    //     Team::Red,
+    // ]));
     // let mut current_scene = Scene::FightGame(FightGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
@@ -219,7 +226,18 @@ pub fn main() {
                         scene_msg = fight_game.update(&input, fps_guard.delta_ms());
                         fight_game.draw(&mut tcnv, &textures);
                     }
+                    Scene::ScreenSaver(screen_saver) => {
+                        scene_msg = screen_saver.update(&input);
+                        screen_saver.draw(&mut tcnv, &mut textures.logo);
+                    }
                 };
+
+                // for i in 0..4 {
+                //     if input.button_pressed(PlayerId(i), Button::Select) {
+                //         scene_msg =
+                //             SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
+                //     }
+                // }
 
                 match scene_msg {
                     SceneMessage::None => (),
@@ -235,6 +253,9 @@ pub fn main() {
                         }
                         Scene::BallGame(game_instance) => {
                             current_scene = Scene::BallGame(game_instance);
+                        }
+                        Scene::ScreenSaver(game_instance) => {
+                            current_scene = Scene::ScreenSaver(game_instance)
                         }
                     },
                 }
@@ -283,6 +304,7 @@ pub enum Scene {
     BallGame(BallGame),
     JumpGame(JumpGame),
     FightGame(FightGame),
+    ScreenSaver(ScreenSaver),
 }
 
 #[derive(Clone, Copy)]
@@ -364,12 +386,8 @@ pub enum SceneMessage {
 }
 
 pub struct Textures<'a> {
-    // pub player: Texture<'a>,
+    pub logo: Texture<'a>,
     pub player_skin: Vec<Texture<'a>>,
-    // pub player_skin0: Texture<'a>,
-    // pub player_skin1: Texture<'a>,
-    // pub player_skin2: Texture<'a>,
-    // pub player_skin3: Texture<'a>,
     pub flag_white: Texture<'a>,
     pub flag_red: Texture<'a>,
     pub flag_blue: Texture<'a>,
@@ -409,6 +427,7 @@ impl<'a> Textures<'a> {
 
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            logo: creator.load_texture("assets/logo.png").unwrap(),
             flag_white: creator.load_texture("assets/flag_white.png").unwrap(),
             flag_blue: creator.load_texture("assets/flag_blue.png").unwrap(),
             flag_red: creator.load_texture("assets/flag_red.png").unwrap(),
@@ -517,4 +536,30 @@ impl Particle {
     pub fn is_allive(&self) -> bool {
         Instant::now() < self.lifetime
     }
+}
+
+pub fn check_idle_timer(input: &ArcadeInput, idle_timer: &mut Timer) -> bool {
+    for i in 0..4 {
+        let v = Vec2::new(
+            input.axis(PlayerId(i), gilrs::Axis::LeftStickX),
+            input.axis(PlayerId(i), gilrs::Axis::LeftStickY),
+        )
+        .normalized();
+        if v != Vec2::zero() {
+            idle_timer.restart();
+        }
+        if input.button_pressed(PlayerId(i), Button::South) {
+            idle_timer.restart();
+        }
+    }
+    idle_timer.is_over()
+}
+pub fn warn_idle_timer(idle_timer: &Timer, canvas: &mut WindowCanvas) {
+    idle_timer.draw_as_pixels(
+        canvas,
+        Rect::new(0, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT),
+        10000,
+        Color::BLACK,
+        0.5,
+    );
 }
