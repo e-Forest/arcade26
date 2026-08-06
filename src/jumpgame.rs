@@ -9,7 +9,7 @@ use sdl2::{
 };
 
 use crate::{
-    DEBUGMODE, GAME_TIME_MS, GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS,
+    Audios, DEBUGMODE, GAME_TIME_MS, GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS,
     JUMPGAME_GROUND_Y, JUMPGAME_STUNNING_LOW_POSX, JUMPGAME_STUNNING_TIME_HIGH,
     JUMPGAME_STUNNING_TIME_LOW, JUMPGAME_TIME_MS, METER_RUN_SPEED, OUTRO_TIME_MS, PARALAX_FACTOR,
     Particle, Player, SCORE_MAX, SCORE_RECT_HEIGHT, Scene, SceneMessage, Team, Textures,
@@ -20,6 +20,7 @@ use crate::{
     overworld::OverWorld,
     player::{PlayerId, PlayerState, is_only_one_team_in_game},
     screensaver::ScreenSaver,
+    sfx_play,
     time::Timer,
     warn_idle_timer,
 };
@@ -69,7 +70,7 @@ impl JumpGame {
         }
     }
 
-    pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
+    pub fn update(&mut self, input: &ArcadeInput, audios: &Audios) -> SceneMessage {
         if check_idle_timer(input, &mut self.idle_timer) {
             return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
         }
@@ -83,21 +84,23 @@ impl JumpGame {
             }
             GameState::InGame => {
                 self.meter -= METER_RUN_SPEED;
-                self.update_players(input);
+                self.update_players(input, audios);
                 self.update_obsticles();
                 self.update_particles();
-                self.handle_players_to_obsitcles();
+                self.handle_players_to_obsitcles(audios);
                 self.handle_score();
                 self.score_max += VIRTUAL_WIDHT;
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
+                    sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
                 }
 
                 // -> Outro (timeout)
                 if self.game_timer.is_over() {
+                    sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
                 }
@@ -138,7 +141,7 @@ impl JumpGame {
         }
     }
 
-    fn handle_players_to_obsitcles(&mut self) {
+    fn handle_players_to_obsitcles(&mut self, audios: &Audios) {
         for player in self.players.iter_mut() {
             let player_box = rect_shifted(player.colision_box_small, player.pos.as_point());
             for obsticle in self.obsticles.iter() {
@@ -149,6 +152,9 @@ impl JumpGame {
                     } else {
                         JUMPGAME_STUNNING_TIME_HIGH
                     };
+                    if player.stunned_end_time < Instant::now() {
+                        sfx_play(&audios.stunned_sound);
+                    }
                     player.stunned_end_time = Instant::now() + Duration::from_millis(stunning_time);
                 }
             }
@@ -325,12 +331,12 @@ impl JumpGame {
         }
     }
 
-    fn update_players(&mut self, input: &ArcadeInput) {
+    fn update_players(&mut self, input: &ArcadeInput, audios: &Audios) {
         for (gamepad_id, player) in self.players.iter_mut().enumerate() {
             if player.team == Team::None {
                 continue;
             }
-            player.update_jumper(input, gamepad_id);
+            player.update_jumper(input, gamepad_id, audios);
         }
     }
 

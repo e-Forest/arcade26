@@ -1,24 +1,24 @@
 use std::time::Instant;
 
 use rand::seq::SliceRandom;
-use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
+use sdl2::{mixer::Chunk, pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
-    BALL_RADIUS, BALLGAME_BALL_GRAVITY_HIGH, BALLGAME_BALL_GRAVITY_LOW,
+    Audios, BALL_RADIUS, BALLGAME_BALL_GRAVITY_HIGH, BALLGAME_BALL_GRAVITY_LOW,
     BALLGAME_BALL_GROUND_BOUCE_FORCE, BALLGAME_BALL_PLAYER_BOUCE_FORCE,
-    BALLGAME_BALL_TIME_BETWEEN_COLLISIONS, BALLGAME_BALL_WALL_BOUCE_FORCE,
-    BALLGAME_BALL_X_DISTANCE_TO_SCORE, BALLGAME_BALL_XBRAKE,
-    BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY, BALLGAME_GROUND_Y, BALLGAME_PLAYER_GRAVITY_HIGH,
+    BALLGAME_BALL_WALL_BOUCE_FORCE, BALLGAME_BALL_X_DISTANCE_TO_SCORE, BALLGAME_BALL_XBRAKE,
+    BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY, BALLGAME_GROUND_Y,
     BALLGAME_PLAYER2BALL_VELO_FACTOR, BALLGAME_RING_LOWER_EDGE, BALLGAME_RING_UPPER_EDGE,
-    BALLGAME_WALL_X, DEBUGMODE, GAME_TIME_MS, GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS,
-    NEXTROUND_TIME_MS, OUTRO_TIME_MS, PLAYER_SIZE, Particle, Scene, SceneMessage, Team, Textures,
-    VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    BALLGAME_TIME_BETWEEN_BALLBOUNCE_SOUNDS, BALLGAME_WALL_X, DEBUGMODE, GAME_TIME_MS, GameState,
+    IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS, NEXTROUND_TIME_MS, OUTRO_TIME_MS, PLAYER_SIZE,
+    Particle, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     check_idle_timer,
     math::{Vec2, lerp, rect_shifted},
     overworld::OverWorld,
     player::{Player, PlayerId, PlayerState, is_only_one_team_in_game},
     screensaver::ScreenSaver,
+    sfx_play,
     time::Timer,
     warn_idle_timer,
 };
@@ -110,7 +110,7 @@ impl BallGame {
         }
     }
 
-    pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
+    pub fn update(&mut self, input: &ArcadeInput, audios: &Audios) -> SceneMessage {
         if check_idle_timer(input, &mut self.idle_timer) {
             return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
         }
@@ -125,16 +125,16 @@ impl BallGame {
                 }
             }
             GameState::InGame => {
-                self.update_players(input);
+                self.update_players(input, audios);
                 if DEBUGMODE {
-                    self.ball.update(Some(input));
+                    self.ball.update(Some(input), audios);
                 } else {
-                    self.ball.update(None);
+                    self.ball.update(None, audios);
                 }
                 self.handle_ball_to_rings_and_borders();
 
                 // -> NextRound
-                self.change_to_nextround();
+                self.change_to_nextround(&audios);
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
@@ -145,6 +145,7 @@ impl BallGame {
                 // -> Outro (timeout)
                 if self.game_timer.is_over() {
                     self.outro_timer.restart();
+                    sfx_play(&audios.win_sound);
                     self.state = GameState::Outro;
                 }
             }
@@ -187,11 +188,13 @@ impl BallGame {
             .clamp(0., BALLGAME_GROUND_Y as f32 - BALL_RADIUS);
 
         if self.ball.pos.y == BALLGAME_GROUND_Y as f32 - BALL_RADIUS {
+            self.ball.play_bounce = true;
             self.ball.velo.y = -BALLGAME_BALL_GROUND_BOUCE_FORCE;
         }
 
         if self.ball.pos.x < BALLGAME_WALL_X + BALL_RADIUS {
             if !is_in_red_ring {
+                self.ball.play_bounce = true;
                 if self.ball.is_inring_old {
                     self.ball.velo.y = -self.ball.velo.y;
                 } else {
@@ -202,6 +205,7 @@ impl BallGame {
         }
         if self.ball.pos.x > VIRTUAL_WIDHT as f32 - BALLGAME_WALL_X - BALL_RADIUS {
             if !is_in_blue_ring {
+                self.ball.play_bounce = true;
                 if self.ball.is_inring_old {
                     self.ball.velo.y = -self.ball.velo.y;
                 } else {
@@ -214,7 +218,7 @@ impl BallGame {
         self.ball.is_inring_old = is_in_blue_ring || is_in_red_ring;
     }
 
-    fn change_to_nextround(&mut self) {
+    fn change_to_nextround(&mut self, audios: &Audios) {
         let add_v2;
         let is_in_red_ring = self.ring_area_red.contains_point(self.ball.pos.as_point());
         let is_in_blue_ring = self.ring_area_blue.contains_point(self.ball.pos.as_point());
@@ -244,12 +248,13 @@ impl BallGame {
         }
         self.nextround_timer.restart();
         self.state = GameState::NextRound;
+        sfx_play(&audios.scored_sound);
     }
 
     fn handle_players_to_ball(&mut self) {
-        if self.ball.last_collision.elapsed() < BALLGAME_BALL_TIME_BETWEEN_COLLISIONS {
-            return;
-        }
+        // if self.ball.last_collision.elapsed() < BALLGAME_BALL_TIME_BETWEEN_COLLISIONS {
+        //     return;
+        // }
 
         let mut player_indexes = Vec::new();
         for i in 0..self.players.len() {
@@ -272,6 +277,8 @@ impl BallGame {
             let ball_center = Vec2::from_point(ball_box.center());
 
             if player_center.distance(&ball_center) < BALL_RADIUS + (PLAYER_SIZE / 2.) {
+                self.ball.play_bounce = true;
+                // self.ball.last_collision = Instant::now();
                 let dir = player_center.direction(&ball_center);
                 self.ball.velo = dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
                 if player.velo.y < 0. {
@@ -420,12 +427,12 @@ impl BallGame {
         }
     }
 
-    fn update_players(&mut self, input: &ArcadeInput) {
+    fn update_players(&mut self, input: &ArcadeInput, audios: &Audios) {
         for (gamepad_id, player) in self.players.iter_mut().enumerate() {
             if player.team == Team::None {
                 continue;
             }
-            player.update_baller(input, gamepad_id);
+            player.update_baller(input, gamepad_id, audios);
         }
     }
 
@@ -442,8 +449,10 @@ pub struct Ball {
     start_pos: Vec2,
     velo: Vec2,
     collision_box: Rect,
-    last_collision: Instant,
+    // last_collision: Instant,
     is_inring_old: bool,
+    play_bounce: bool,
+    play_bounce_timer: Timer,
     // radius: f32,
 }
 
@@ -454,12 +463,14 @@ impl Ball {
             start_pos: pos,
             velo: Vec2::zero(),
             collision_box: Rect::new(-8, -8, 16, 16),
-            last_collision: Instant::now(),
+            // last_collision: Instant::now(),
             is_inring_old: false,
+            play_bounce: false,
+            play_bounce_timer: Timer::new(BALLGAME_TIME_BETWEEN_BALLBOUNCE_SOUNDS),
             // radius: 8.,
         }
     }
-    pub fn update(&mut self, opt_input: Option<&ArcadeInput>) {
+    pub fn update(&mut self, opt_input: Option<&ArcadeInput>, audios: &Audios) {
         let gravity = if self.pos.y > BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY {
             BALLGAME_BALL_GRAVITY_LOW
         } else {
@@ -474,6 +485,13 @@ impl Ball {
             )
         }
         self.pos = self.pos + self.velo;
+        if self.play_bounce {
+            self.play_bounce = false;
+            if self.play_bounce_timer.is_over() {
+                sfx_play(&audios.ball_sound);
+                self.play_bounce_timer.restart();
+            }
+        }
     }
 
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {

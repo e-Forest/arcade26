@@ -8,10 +8,10 @@ use sdl2::{
 };
 
 use crate::{
-    Arrow, DEBUGMODE, FIGHTGAME_DASHTIME_AFTER_HIT_MS, FIGHTGAME_STUNNING_TIME, GAME_TIME_MS,
-    GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS, OUTRO_TIME_MS, Particle, Player,
-    SCORE_RECT_HEIGHT, STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, Scene, SceneMessage,
-    Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
+    Arrow, Audios, DEBUGMODE, FIGHTGAME_DASHTIME_AFTER_HIT_MS, FIGHTGAME_STUNNING_TIME,
+    GAME_TIME_MS, GameState, IDLE_TIME_TO_SCREENSAVE_MS, INTRO_TIME_MS, OUTRO_TIME_MS, Particle,
+    Player, SCORE_RECT_HEIGHT, STUNNING_SPEED_ARROW_HIT, STUNNING_SPEED_DASH_HIT, Scene,
+    SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     check_idle_timer,
@@ -19,6 +19,7 @@ use crate::{
     overworld::OverWorld,
     player::{PlayerMessage, PlayerState, is_only_one_team_in_game},
     screensaver::ScreenSaver,
+    sfx_play,
     time::Timer,
     warn_idle_timer,
 };
@@ -96,7 +97,7 @@ impl FightGame {
         }
     }
 
-    pub fn update(&mut self, input: &ArcadeInput, delta_ms: u32) -> SceneMessage {
+    pub fn update(&mut self, input: &ArcadeInput, delta_ms: u32, audios: &Audios) -> SceneMessage {
         if check_idle_timer(input, &mut self.idle_timer) {
             return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
         }
@@ -112,13 +113,13 @@ impl FightGame {
                 }
             }
             GameState::InGame => {
-                self.update_players(input);
-                self.update_arrows();
+                self.update_players(input, audios);
+                self.update_arrows(audios);
                 self.update_platsches();
                 self.update_particles();
                 self.handle_players_to_arrows();
                 self.handle_players_to_dashingplayers();
-                self.handle_players_to_groundboxes();
+                self.handle_players_to_groundboxes(audios);
                 self.handle_players_to_scorearea(delta_ms);
                 // let p = Particle::new(
                 //     Vec2::from_point(self.score_area.center()),
@@ -129,12 +130,14 @@ impl FightGame {
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
+                    sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
                 }
 
                 // -> Outro (timeout)
                 if self.game_timer.is_over() {
+                    sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
                 }
@@ -199,7 +202,7 @@ impl FightGame {
         }
     }
 
-    fn handle_players_to_groundboxes(&mut self) {
+    fn handle_players_to_groundboxes(&mut self, audios: &Audios) {
         let mut player_not_grounded = Vec::new();
         for (player_idx, player) in self.players.iter_mut().enumerate() {
             let mut is_player_groundet = false;
@@ -223,6 +226,7 @@ impl FightGame {
 
         for player_idx in player_not_grounded {
             if let Some(player) = self.players.get_mut(player_idx) {
+                sfx_play(&audios.water_sound);
                 self.platsches
                     .push(Platsch::new(player.pos, &self.platsch_template));
                 player.pos = player.start_pos;
@@ -328,24 +332,25 @@ impl FightGame {
             .retain(|platsch| platsch.is_finished() == false);
     }
 
-    fn update_arrows(&mut self) {
+    fn update_arrows(&mut self, audios: &Audios) {
         for arrow in self.arrows.iter_mut() {
             arrow.update();
             if arrow.is_allive == false
                 && ground_at_point(arrow.pos.as_point(), &self.ground_boxes).is_none()
             {
+                sfx_play(&audios.water_sound);
                 self.platsches
                     .push(Platsch::new(arrow.pos, &self.platsch_template));
             }
         }
     }
 
-    fn update_players(&mut self, input: &ArcadeInput) {
+    fn update_players(&mut self, input: &ArcadeInput, audios: &Audios) {
         for (gamepad_id, player) in self.players.iter_mut().enumerate() {
             if player.team == Team::None {
                 continue;
             }
-            let player_messages = player.update_fighter(input, gamepad_id);
+            let player_messages = player.update_fighter(input, gamepad_id, audios);
             fix_player_position(player, self.ground_boxes.as_slice());
             for msg in player_messages {
                 match msg {

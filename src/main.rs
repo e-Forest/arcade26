@@ -1,6 +1,7 @@
 use rand::random_range;
 use sdl2::Sdl;
 use sdl2::image::LoadTexture;
+use sdl2::mixer::{AUDIO_S16LSB, Channel, Chunk, DEFAULT_CHANNELS, InitFlag, Music};
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{BlendMode, ScaleMode, Texture, TextureCreator};
@@ -44,7 +45,7 @@ use time::*;
 pub mod player;
 use player::*;
 
-pub const DEBUGMODE: bool = false;
+pub const DEBUGMODE: bool = true;
 pub const FIXED_FPS: u32 = 60;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
@@ -70,7 +71,7 @@ pub const LOGO_BLINK_MS: u32 = 5000;
 pub const PLAYER_SIZE: f32 = 16.;
 pub const LOGO_WH: (u32, u32) = (92, 20);
 
-pub const IDLE_TIME_TO_SCREENSAVE_MS: u32 = 20000;
+pub const IDLE_TIME_TO_SCREENSAVE_MS: u32 = 15000;
 
 // - Fightgame -
 pub const FIGHTGAME_PLAYER_SPEED: f32 = 1.0;
@@ -129,7 +130,8 @@ pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 2.;
 pub const BALLGAME_BALL_WALL_BOUCE_FORCE: f32 = 1.;
 pub const BALLGAME_WALL_X: f32 = 36.;
 pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = 22.; // BALLGAME_WALL_X - 4.;
-pub const BALLGAME_BALL_TIME_BETWEEN_COLLISIONS: Duration = Duration::from_millis(200);
+// pub const BALLGAME_BALL_TIME_BETWEEN_COLLISIONS: Duration = Duration::from_millis(200);
+pub const BALLGAME_TIME_BETWEEN_BALLBOUNCE_SOUNDS: u32 = 200;
 
 pub const BALLGAME_RING_UPPER_EDGE: f32 = 20.;
 pub const BALLGAME_RING_LOWER_EDGE: f32 = 73.;
@@ -175,11 +177,20 @@ pub fn main() {
     rendertarget.set_blend_mode(BlendMode::Blend);
     rendertarget.set_scale_mode(ScaleMode::Nearest);
 
+    // - audio -
+    let _audio = sdl_context.audio().unwrap();
+    sdl2::mixer::init(InitFlag::MP3).unwrap();
+    sdl2::mixer::open_audio(44_100, AUDIO_S16LSB, DEFAULT_CHANNELS, 1_024).unwrap();
+    sdl2::mixer::Music::set_volume(64); // 0–128
+    sdl2::mixer::allocate_channels(16);
+
+    let audios = Audios::new();
     let mut textures = Textures::new(&creator);
 
-    let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
+    // - START SCENE -
+    // let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
-    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
+    let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
@@ -215,15 +226,15 @@ pub fn main() {
                         over_world.draw(&mut tcnv, &textures);
                     }
                     Scene::BallGame(ball_game) => {
-                        scene_msg = ball_game.update(&input);
+                        scene_msg = ball_game.update(&input, &audios);
                         ball_game.draw(&mut tcnv, &textures);
                     }
                     Scene::JumpGame(jump_game) => {
-                        scene_msg = jump_game.update(&input);
+                        scene_msg = jump_game.update(&input, &audios);
                         jump_game.draw(&mut tcnv, &textures);
                     }
                     Scene::FightGame(fight_game) => {
-                        scene_msg = fight_game.update(&input, fps_guard.delta_ms());
+                        scene_msg = fight_game.update(&input, fps_guard.delta_ms(), &audios);
                         fight_game.draw(&mut tcnv, &textures);
                     }
                     Scene::ScreenSaver(screen_saver) => {
@@ -243,15 +254,19 @@ pub fn main() {
                     SceneMessage::None => (),
                     SceneMessage::ChangeScene(scene) => match scene {
                         Scene::OverWorld(game_instance) => {
+                            audios.overworld_music.play(-1).ok();
                             current_scene = Scene::OverWorld(game_instance);
                         }
                         Scene::JumpGame(game_instance) => {
+                            audios.game_music.play(-1).ok();
                             current_scene = Scene::JumpGame(game_instance);
                         }
                         Scene::FightGame(game_instance) => {
+                            audios.game_music.play(-1).ok();
                             current_scene = Scene::FightGame(game_instance);
                         }
                         Scene::BallGame(game_instance) => {
+                            audios.game_music.play(-1).ok();
                             current_scene = Scene::BallGame(game_instance);
                         }
                         Scene::ScreenSaver(game_instance) => {
@@ -383,6 +398,37 @@ impl Arrow {
 pub enum SceneMessage {
     None,
     ChangeScene(Scene),
+}
+
+pub struct Audios {
+    overworld_music: Music<'static>,
+    game_music: Music<'static>,
+    jump_sound: Chunk,
+    dash_sound: Chunk,
+    scored_sound: Chunk,
+    win_sound: Chunk,
+    stunned_sound: Chunk,
+    ball_sound: Chunk,
+    water_sound: Chunk,
+    arrow_sound: Chunk,
+}
+
+impl Audios {
+    pub fn new() -> Self {
+        Self {
+            overworld_music: sdl2::mixer::Music::from_file("assets/sfx/overworld_music.mp3")
+                .unwrap(),
+            game_music: sdl2::mixer::Music::from_file("assets/sfx/game_music.mp3").unwrap(),
+            jump_sound: Chunk::from_file("assets/sfx/jump_sound.mp3").unwrap(),
+            dash_sound: Chunk::from_file("assets/sfx/dash_sound.mp3").unwrap(),
+            win_sound: Chunk::from_file("assets/sfx/win_sound.mp3").unwrap(),
+            scored_sound: Chunk::from_file("assets/sfx/scored_sound.mp3").unwrap(),
+            stunned_sound: Chunk::from_file("assets/sfx/stunned_sound.mp3").unwrap(),
+            ball_sound: Chunk::from_file("assets/sfx/ball_sound.mp3").unwrap(),
+            water_sound: Chunk::from_file("assets/sfx/water_sound.mp3").unwrap(),
+            arrow_sound: Chunk::from_file("assets/sfx/arrow_sound.mp3").unwrap(),
+        }
+    }
 }
 
 pub struct Textures<'a> {
@@ -562,4 +608,11 @@ pub fn warn_idle_timer(idle_timer: &Timer, canvas: &mut WindowCanvas) {
         Color::BLACK,
         0.5,
     );
+}
+
+pub fn sfx_play(sound: &Chunk) {
+    Channel::all().play(sound, 0).ok();
+}
+pub fn sfx_play_looped(sound: &Chunk, loops: i32) {
+    Channel::all().play(sound, loops).ok();
 }

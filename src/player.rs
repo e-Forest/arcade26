@@ -2,14 +2,15 @@ use std::time::{Duration, Instant};
 
 use gilrs::Button;
 use sdl2::{
+    mixer::Channel,
     pixels::Color,
     rect::{Point, Rect},
     render::WindowCanvas,
 };
 
 use crate::{
-    ARROW_SPAWN_DISTANCE, ARROW_SPAWN_OFFSET_Y, Arrow, BALLGAME_DASH_SPEED, BALLGAME_DASH_TIME,
-    BALLGAME_GROUND_Y, BALLGAME_JUMP_FORCE, BALLGAME_MAX_STAMINA,
+    ARROW_SPAWN_DISTANCE, ARROW_SPAWN_OFFSET_Y, Arrow, Audios, BALLGAME_DASH_SPEED,
+    BALLGAME_DASH_TIME, BALLGAME_GROUND_Y, BALLGAME_JUMP_FORCE, BALLGAME_MAX_STAMINA,
     BALLGAME_PLAYER_DISTANCE_TO_WALLS, BALLGAME_PLAYER_GRAVITY_HIGH, BALLGAME_PLAYER_GRAVITY_LOW,
     BALLGAME_PLAYER_SPEED, BALLGAME_WALL_X, DASH_GETS_DANGEROUS_TIME, DEBUGMODE,
     FIGHTGAME_DASH_SPEED, FIGHTGAME_DASH_TIME, FIGHTGAME_PLAYER_SPEED, FIGHTGAME_STUNNING_TIME,
@@ -20,6 +21,7 @@ use crate::{
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
     math::{Vec2, lerp, rect_shifted},
+    sfx_play, sfx_play_looped,
     time::Timer,
 };
 
@@ -127,7 +129,12 @@ impl Player {
         self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
     }
 
-    pub fn update_fighter(&mut self, input: &ArcadeInput, gamepad_id: usize) -> Vec<PlayerMessage> {
+    pub fn update_fighter(
+        &mut self,
+        input: &ArcadeInput,
+        gamepad_id: usize,
+        audios: &Audios,
+    ) -> Vec<PlayerMessage> {
         let mut out = Vec::new();
 
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
@@ -164,11 +171,13 @@ impl Player {
 
                 // -> Shoot
                 if self.is_aiming == true && self.stamina >= 1. {
+                    sfx_play(&audios.arrow_sound);
                     self.state = PlayerState::Shoot;
                 }
 
                 // -> Stunned
                 if self.stunned_end_time >= Instant::now() {
+                    sfx_play(&audios.stunned_sound);
                     self.state = PlayerState::Stunned;
                 }
             }
@@ -191,14 +200,17 @@ impl Player {
 
                 // -> Stunned
                 if self.stunned_end_time >= Instant::now() {
+                    sfx_play(&audios.stunned_sound);
                     self.state = PlayerState::Stunned;
                 }
 
                 // -> Dash
                 if input.just_button_pressed(PlayerId(gamepad_id), Button::South) {
-                    if self.stamina >= 1. {
+                    let dash_dir = input_move_direction.normalized();
+                    if dash_dir != Vec2::zero() && self.stamina >= 1. {
+                        sfx_play(&audios.dash_sound);
                         self.stamina -= 1.;
-                        self.dash_direction = input_move_direction.normalized();
+                        self.dash_direction = dash_dir;
                         self.dash_end_time =
                             Instant::now() + Duration::from_millis(FIGHTGAME_DASH_TIME);
                         self.state = PlayerState::Dash;
@@ -207,6 +219,7 @@ impl Player {
 
                 // -> Shoot
                 if self.is_aiming == true && self.stamina >= 1. {
+                    sfx_play(&audios.arrow_sound);
                     self.state = PlayerState::Shoot;
                 }
 
@@ -301,7 +314,7 @@ impl Player {
         }
     }
 
-    pub fn update_jumper(&mut self, input: &ArcadeInput, gamepad_id: usize) {
+    pub fn update_jumper(&mut self, input: &ArcadeInput, gamepad_id: usize, audios: &Audios) {
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
 
         self.give_up(input, gamepad_id);
@@ -328,6 +341,7 @@ impl Player {
                     self.velo.y = -JUMPGAME_JUMP_FORCE;
                     self.is_jumping = true;
                     self.jump_start_time = Instant::now();
+                    sfx_play(&audios.jump_sound);
                 }
 
                 let gravity = if is_input_jump && self.jump_start_time.elapsed() < JUMP_MAX_HOLD {
@@ -362,7 +376,7 @@ impl Player {
         self.pos.y = self.pos.y.clamp(0., JUMPGAME_GROUND_Y as f32);
     }
 
-    pub fn update_baller(&mut self, input: &ArcadeInput, gamepad_id: usize) {
+    pub fn update_baller(&mut self, input: &ArcadeInput, gamepad_id: usize, audios: &Audios) {
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
         let vertical_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickY);
 
@@ -384,7 +398,13 @@ impl Player {
                 );
 
                 // Jump
-                self.jumping(input, gamepad_id, horizontal_movement, vertical_movement);
+                self.jumping(
+                    input,
+                    gamepad_id,
+                    horizontal_movement,
+                    vertical_movement,
+                    audios,
+                );
 
                 // -> Move
                 if self.velo.x.abs() > INPUT_AXIS_THRESHOLD {
@@ -406,7 +426,13 @@ impl Player {
                 );
 
                 // Jump
-                self.jumping(input, gamepad_id, horizontal_movement, vertical_movement);
+                self.jumping(
+                    input,
+                    gamepad_id,
+                    horizontal_movement,
+                    vertical_movement,
+                    audios,
+                );
 
                 // Flip
                 if self.velo.x > INPUT_AXIS_THRESHOLD {
@@ -455,6 +481,7 @@ impl Player {
         gamepad_id: usize,
         horizontal_movement: f32,
         vertical_movement: f32,
+        audios: &Audios,
     ) {
         let is_input_jump = input.button_pressed(PlayerId(gamepad_id), Button::South);
         let is_input_just_jump = input.just_button_pressed(PlayerId(gamepad_id), Button::South);
@@ -471,6 +498,7 @@ impl Player {
                     self.stamina -= 1.;
                     self.jump_start_time = Instant::now();
                     self.state = PlayerState::Dash;
+                    sfx_play(&audios.dash_sound);
                 }
             }
         }
@@ -488,6 +516,7 @@ impl Player {
             self.velo.y = -BALLGAME_JUMP_FORCE;
             self.is_jumping = true;
             self.jump_start_time = Instant::now();
+            sfx_play(&audios.jump_sound);
         }
 
         let gravity = if is_input_jump && self.jump_start_time.elapsed() < JUMP_MAX_HOLD {
