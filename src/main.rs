@@ -143,7 +143,10 @@ pub const BALLGAME_DASH_SPEED: f32 = 3.8;
 
 pub fn main() {
     let sdl_context = sdl2::init().unwrap();
+
     let video_subsystem = sdl_context.video().unwrap();
+
+    sdl_context.mouse().show_cursor(false);
 
     let mut window = video_subsystem
         .window("Arcade26", 800, 600)

@@ -84,7 +84,7 @@ impl JumpGame {
                 }
             }
             GameState::InGame => {
-                let delta_meter = METER_RUN_SPEED + random_range(-1..1) as f32;
+                let delta_meter = METER_RUN_SPEED + (random_range(-500..500) as f32) / 1000.;
                 self.meter -= delta_meter;
                 // self.meter -= METER_RUN_SPEED * _dt;
                 // self.meter -= METER_RUN_SPEED;
