@@ -661,9 +661,10 @@ fn shutdown() {
     Command::new("poweroff")
         .status()
         .expect("poweroff fehlgeschlagen");
+    std::process::exit(0);
 }
 
 #[cfg(target_os = "windows")]
 fn shutdown() {
-    println!("Shutdown wird unter Windows nicht unterstützt.");
+    std::process::exit(0);
 }
