@@ -1,0 +1,90 @@
+# anmelden
+anmelden mit 'root' (PW ist leer)
+hostname: localhost
+root-pw: 0
+user: eforest
+pw: eforest
+
+## alpine installieren
+	setup-alpine ... (wobei man für '-' 'ß' drücken muss)
+  man wird aufgefordert Keymap zu wählen -> 'de' 'de'
+
+## Internet einstellen
+	setup-interfaces ...
+	'eth0'
+	'dhcp'
+	'done'
+
+. 'Europe' -> 'Berlin' Zeitzone
+. [none] Proxy
+. [busybox]
+. 'f' Fastest mirror
+. [no] Kein User
+. [openssh]
+
+## Disc Auswählen
+'sda' -> 'sys'
+
+. unter root anmelden (installation ist da einfacher)
+
+. community-repo aktivieren ('vi /etc/apk/repositories')
+
+. helix-editor installieren apk add helix
+	
+# rust + cargo installieren
+	apk add rust cargo sdl2-dev sdl2_image-dev sdl2_mixer-dev
+
+# Sway installieren
+	setup-desktop ...
+
+# git installieren
+	apk add git
+
+# repo clonen
+	mkdir /opt/repos -> cd /opt/repos -> git clone 'https:<repoadresse>' (repo muss public sein)
+
+# eudev installieren (wird wohl für cargo gebraucht)
+	apk add eudev-dev eudev-libs pkgconfig
+
+. cargo run
+
+# Automatisch Anmelden
+apk add agetty
+hx /etc/inittab
+
+ 	"tty1::respawn:/sbin/getty 38400 tty1"
+ 	umschreiben in:
+ 	"tty1::respawn:/sbin/agetty --autologin root tty1 linux"
+
+# Arcde automatisch starten
+hx ~/.profile
+---
+echo "Starte ZockBox..."
+cd <pfad zum repo>
+	
+# automatisches networking ausgeschaltet
+	rc-update del networking boot
+
+# Sound auf HDMI Ausgang
+	apk add alsa-utils // alsa-plugins pulseaudio pulseaudio-alsa)
+	
+	# Verfügbare ausgen listen
+	aplay -l
+	card 0: PCH [HDA Intel PCH], device 0: ALC233 Analog
+	card 1: HDMI [HDA ATI HDMI], device 3: HDMI 0
+	
+	# Config erstellen
+	hx /etc/asound.conf
+	---
+	pcm.!default {
+	  type hw
+	  card 0
+	  device 3
+	}
+
+	ctl.!default {
+	  type hw
+	  card 0
+	}
+	---
+	(komischer weise musste ich card 0 eingeben obwohl ich card 1 angezeigt bekommen habe)

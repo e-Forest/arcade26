@@ -213,6 +213,7 @@ pub fn main() {
     // ]));
 
     let mut fps_guard = FpsGuard::new(FIXED_FPS);
+    let mut shutdown_timer = Timer::new(3000);
 
     // - Mainloop -
     loop {
@@ -221,6 +222,19 @@ pub fn main() {
             break;
         }
         input.update();
+
+        let mut is_shutdown = false;
+        for i in 0..4 {
+            if input.button_pressed(PlayerId(i), Button::Start) {
+                is_shutdown = true;
+            }
+        }
+        if !is_shutdown {
+            shutdown_timer.restart();
+        }
+        if shutdown_timer.is_over() {
+            shutdown();
+        }
 
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
@@ -276,6 +290,13 @@ pub fn main() {
                         }
                     },
                 }
+                shutdown_timer.draw_as_pixels(
+                    tcnv,
+                    Rect::new(0, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT),
+                    10000,
+                    Color::MAGENTA,
+                    0.8,
+                );
                 if DEBUGMODE {
                     fps_guard.draw(tcnv, VIRTUAL_WIDHT as i32 - 20, 0);
                 }
@@ -631,4 +652,18 @@ pub fn sfx_play(sound: &Chunk) {
 }
 pub fn sfx_play_looped(sound: &Chunk, loops: i32) {
     Channel::all().play(sound, loops).ok();
+}
+
+#[cfg(target_os = "linux")]
+fn shutdown() {
+    use std::process::Command;
+
+    Command::new("poweroff")
+        .status()
+        .expect("poweroff fehlgeschlagen");
+}
+
+#[cfg(target_os = "windows")]
+fn shutdown() {
+    println!("Shutdown wird unter Windows nicht unterstützt.");
 }
