@@ -1,7 +1,12 @@
 use std::time::Instant;
 
 use rand::seq::SliceRandom;
-use sdl2::{mixer::Chunk, pixels::Color, rect::Rect, render::WindowCanvas};
+use sdl2::{
+    mixer::{Chunk, Music},
+    pixels::Color,
+    rect::Rect,
+    render::WindowCanvas,
+};
 
 use crate::{
     Audios, BALL_RADIUS, BALLGAME_BALL_GRAVITY_HIGH, BALLGAME_BALL_GRAVITY_LOW,
@@ -88,9 +93,11 @@ impl BallGame {
             VIRTUAL_HEIGHT as f32 * 0.8,
         ));
 
-        // - Ball fliegt in rechten Ring -
-        // let mut ball = Ball::new(Vec2::new(80., 30.));
-        // ball.velo = Vec2::new(-1., 0.6).normalized() * 3.;
+        // - Ball fliegt in den Ring -
+        // let mut ball = Ball::new(Vec2::new(VIRTUAL_WIDHT as f32 - 80., 25.));
+        // ball.velo = Vec2::new(1.1, 0.6).normalized() * 3.;
+        // let mut ball = Ball::new(Vec2::new(80., 25.));
+        // ball.velo = Vec2::new(-1.1, 0.6).normalized() * 3.;
 
         Self {
             state: GameState::Intro,
@@ -145,6 +152,7 @@ impl BallGame {
                 // -> Outro (timeout)
                 if self.game_timer.is_over() {
                     self.outro_timer.restart();
+                    Music::fade_out(1000).ok();
                     sfx_play(&audios.win_sound);
                     self.state = GameState::Outro;
                 }

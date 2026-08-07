@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 use rand::random_range;
 use sdl2::{
     libc::dev_t,
+    mixer::Music,
     pixels::Color,
     rect::{Point, Rect},
     render::{Texture, WindowCanvas},
@@ -83,10 +84,12 @@ impl JumpGame {
                 }
             }
             GameState::InGame => {
+                let delta_meter = METER_RUN_SPEED + random_range(-1..1) as f32;
+                self.meter -= delta_meter;
                 // self.meter -= METER_RUN_SPEED * _dt;
-                self.meter -= METER_RUN_SPEED;
+                // self.meter -= METER_RUN_SPEED;
                 self.update_players(input, audios);
-                self.update_obsticles(_dt);
+                self.update_obsticles(delta_meter);
                 self.update_particles();
                 self.handle_players_to_obsitcles(audios);
                 self.handle_score();
@@ -94,6 +97,7 @@ impl JumpGame {
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
+                    Music::fade_out(1000).ok();
                     sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
@@ -101,6 +105,7 @@ impl JumpGame {
 
                 // -> Outro (timeout)
                 if self.game_timer.is_over() {
+                    Music::fade_out(1000).ok();
                     sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
@@ -162,10 +167,11 @@ impl JumpGame {
         }
     }
 
-    fn update_obsticles(&mut self, _dt: f32) {
+    fn update_obsticles(&mut self, delta_meter: f32) {
         for obsticle in self.obsticles.iter_mut() {
             // obsticle.pos.x -= METER_RUN_SPEED * _dt;
-            obsticle.pos.x -= METER_RUN_SPEED;
+            // obsticle.pos.x -= METER_RUN_SPEED;
+            obsticle.pos.x -= delta_meter;
 
             // obsticle.pos.x = (self.meter as i32 % VIRTUAL_WIDHT as i32) as f32; // METER_RUN_SPEED;
         }
@@ -183,12 +189,12 @@ impl JumpGame {
             };
 
             // let round_decimal = self.meter - (self.meter as i32) as f32;
-            let round_decimal = self.meter - self.meter.trunc();
+            // let round_decimal = self.meter - self.meter.trunc();
 
             let obsticle = Obsticle::new(
                 obsticle_enum,
                 Vec2::new(
-                    VIRTUAL_WIDHT as f32 + 64. + round_decimal,
+                    VIRTUAL_WIDHT as f32 + 64., // + round_decimal,
                     JUMPGAME_GROUND_Y as f32,
                 ),
             );

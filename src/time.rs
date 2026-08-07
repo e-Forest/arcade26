@@ -115,7 +115,13 @@ impl FpsGuard {
         if self.code_time > self.frame_budget {
             self.exceeded_time = Some(Instant::now());
         }
+        // loop {
+        //     if Instant::now() > self.frame_start_time + self.frame_budget {
+        //         break;
+        //     }
+        // }
         sleep(self.wait_time);
+        // sleep(Duration::from_millis(1000 / 60));
         self.delta_time = self.frame_start_time.elapsed();
     }
 

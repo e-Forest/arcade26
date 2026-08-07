@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 use rand::random_range;
 use sdl2::{
+    mixer::Music,
     pixels::Color,
     rect::{Point, Rect},
     render::WindowCanvas,
@@ -130,6 +131,7 @@ impl FightGame {
 
                 // -> Outro (giveup)
                 if is_only_one_team_in_game(&self.players) {
+                    Music::fade_out(1000).ok();
                     sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;
@@ -137,6 +139,7 @@ impl FightGame {
 
                 // -> Outro (timeout)
                 if self.game_timer.is_over() {
+                    Music::fade_out(1000).ok();
                     sfx_play(&audios.win_sound);
                     self.outro_timer.restart();
                     self.state = GameState::Outro;

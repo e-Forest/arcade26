@@ -58,7 +58,7 @@ pub const STAMINA_RELOAD_PER_FRAME: f32 = 1. / 60.;
 
 pub const GAME_TIME_MS: u32 = 1000 * 60 * 2; // 2min
 pub const INTRO_TIME_MS: u32 = 3000;
-pub const OUTRO_TIME_MS: u32 = 5000;
+pub const OUTRO_TIME_MS: u32 = 6000;
 pub const START_GAME_TIME_MS: u32 = 3000;
 pub const NEXTROUND_TIME_MS: u32 = 2000;
 
@@ -71,7 +71,7 @@ pub const LOGO_BLINK_MS: u32 = 5000;
 pub const PLAYER_SIZE: f32 = 16.;
 pub const LOGO_WH: (u32, u32) = (92, 20);
 
-pub const IDLE_TIME_TO_SCREENSAVE_MS: u32 = 15000;
+pub const IDLE_TIME_TO_SCREENSAVE_MS: u32 = 30000;
 
 // - Fightgame -
 pub const FIGHTGAME_PLAYER_SPEED: f32 = 1.0;
@@ -193,9 +193,9 @@ pub fn main() {
     let mut textures = Textures::new(&creator);
 
     // - START SCENE -
-    // let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
+    let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
-    let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
+    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
@@ -248,13 +248,6 @@ pub fn main() {
                     }
                 };
 
-                // for i in 0..4 {
-                //     if input.button_pressed(PlayerId(i), Button::Select) {
-                //         scene_msg =
-                //             SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
-                //     }
-                // }
-
                 match scene_msg {
                     SceneMessage::None => (),
                     SceneMessage::ChangeScene(scene) => match scene {
@@ -275,6 +268,7 @@ pub fn main() {
                             current_scene = Scene::BallGame(game_instance);
                         }
                         Scene::ScreenSaver(game_instance) => {
+                            Music::fade_out(1000).ok();
                             current_scene = Scene::ScreenSaver(game_instance)
                         }
                     },
@@ -591,15 +585,29 @@ impl Particle {
 
 pub fn check_idle_timer(input: &ArcadeInput, idle_timer: &mut Timer) -> bool {
     for i in 0..4 {
-        let v = Vec2::new(
+        let vl = Vec2::new(
             input.axis(PlayerId(i), gilrs::Axis::LeftStickX),
             input.axis(PlayerId(i), gilrs::Axis::LeftStickY),
         )
         .normalized();
-        if v != Vec2::zero() {
+        if vl != Vec2::zero() {
             idle_timer.restart();
         }
+
+        let vr = Vec2::new(
+            input.axis(PlayerId(i), gilrs::Axis::RightStickX),
+            input.axis(PlayerId(i), gilrs::Axis::RightStickY),
+        )
+        .normalized();
+        if vr != Vec2::zero() {
+            idle_timer.restart();
+        }
+
         if input.button_pressed(PlayerId(i), Button::South) {
+            idle_timer.restart();
+        }
+
+        if input.button_pressed(PlayerId(i), Button::North) {
             idle_timer.restart();
         }
     }
@@ -611,7 +619,7 @@ pub fn warn_idle_timer(idle_timer: &Timer, canvas: &mut WindowCanvas) {
         Rect::new(0, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT),
         10000,
         Color::BLACK,
-        0.5,
+        0.3,
     );
 }
 
