@@ -46,7 +46,7 @@ pub struct FightGame {
 }
 
 impl FightGame {
-    pub fn new(player_in_game: Vec<Team>) -> Self {
+    pub fn new(player_in_game: Vec<(Team, usize)>) -> Self {
         let mut players = Vec::new();
         let mut start_positions_red = vec![Vec2::new(16., 32.), Vec2::new(16., 32. + 32.)];
         let mut start_positions_blue = vec![
@@ -54,13 +54,13 @@ impl FightGame {
             Vec2::new(16., VIRTUAL_HEIGHT as f32 - (32. + 32.)),
         ];
 
-        for team in player_in_game {
+        for (_i, (team, skin_idx)) in player_in_game.iter().enumerate() {
             let start_pos = match team {
                 Team::Blue => start_positions_blue.remove(0),
                 Team::Red => start_positions_red.remove(0),
                 _ => Vec2::zero(),
             };
-            let mut p = Player::new(start_pos, team);
+            let mut p = Player::new(start_pos, *team, *skin_idx);
             p.stamina = 3.;
             players.push(p);
         }
@@ -415,7 +415,7 @@ impl FightGame {
         }
 
         // GameTime
-        self.game_timer.draw(
+        self.game_timer.draw_as_rect(
             canvas,
             Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
             Color::GREEN,
@@ -443,7 +443,7 @@ impl FightGame {
                 // - Regeln Anzeigen -
                 canvas.copy(&textures.fightgame_rules, None, None).unwrap();
                 // - Timer Anzeigen -
-                self.into_timer.draw(
+                self.into_timer.draw_as_rect(
                     canvas,
                     Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
                     Color::GREEN,
@@ -452,7 +452,7 @@ impl FightGame {
             }
             GameState::Outro => {
                 // - Timer Anzeigen -
-                self.outro_timer.draw(
+                self.outro_timer.draw_as_rect(
                     canvas,
                     Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
                     Color::GREEN,

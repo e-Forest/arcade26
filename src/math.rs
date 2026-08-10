@@ -127,12 +127,14 @@ pub fn get_aspect_fitted_rect(
     outer_w: u32,
     outer_h: u32,
 ) -> AspectFittedRect {
+    // let ratio_w = (outer_w / inner_w) as f32;
+    // let ratio_h = (outer_h / inner_h) as f32;
     let ratio_w = outer_w as f32 / inner_w as f32;
     let ratio_h = outer_h as f32 / inner_h as f32;
     let ratio = ratio_w.min(ratio_h);
 
-    let box_w = (inner_w as f32 * ratio) as u32;
-    let box_h = (inner_h as f32 * ratio) as u32;
+    let box_w = (inner_w as f32 * ratio as f32) as u32;
+    let box_h = (inner_h as f32 * ratio as f32) as u32;
     let box_left = ((outer_w - box_w) / 2) as i32;
     let box_top = ((outer_h - box_h) / 2) as i32;
 

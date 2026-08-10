@@ -1,7 +1,7 @@
 use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
-    BallGame, DEBUGMODE, FightGame, IDLE_TIME_TO_SCREENSAVE_MS, JumpGame, Player, PlayerId,
+    Audios, BallGame, DEBUGMODE, FightGame, IDLE_TIME_TO_SCREENSAVE_MS, JumpGame, Player, PlayerId,
     START_GAME_TIME_MS, Scene, SceneMessage, Team, Textures, VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
@@ -32,7 +32,7 @@ impl<'a> OverWorld {
     pub fn new() -> Self {
         let mut players = Vec::new();
         for i in 0..4 {
-            let mut p = Player::new(Vec2::new(230. + (1. + i as f32) * 16., 80.), Team::None);
+            let mut p = Player::new(Vec2::new(230. + (1. + i as f32) * 16., 80.), Team::None, i);
             p.fliped = true;
             players.push(p);
         }
@@ -60,7 +60,7 @@ impl<'a> OverWorld {
             idle_timer: Timer::new(IDLE_TIME_TO_SCREENSAVE_MS),
         }
     }
-    pub fn update(&mut self, input: &ArcadeInput) -> SceneMessage {
+    pub fn update(&mut self, input: &ArcadeInput, audios: &Audios) -> SceneMessage {
         if check_idle_timer(input, &mut self.idle_timer) {
             return SceneMessage::ChangeScene(Scene::ScreenSaver(ScreenSaver::new()));
         }
@@ -88,7 +88,7 @@ impl<'a> OverWorld {
         let players_at_noplay = count_players_at_area(&self.players, self.noplay_area);
 
         // - Update Players -
-        self.update_players(input);
+        self.update_players(input, audios);
 
         // - Handle Scene-Changes -
         let is_ballgame_teams_ok =
@@ -128,15 +128,16 @@ impl<'a> OverWorld {
         SceneMessage::None
     }
 
-    fn get_players_in_team(&self) -> Vec<Team> {
+    fn get_players_in_team(&self) -> Vec<(Team, usize)> {
         let mut out = Vec::new();
         for p in self.players.iter() {
-            out.push(p.team);
+            out.push((p.team, p.skin_idx));
         }
         out
     }
 
-    fn update_players(&mut self, input: &ArcadeInput) {
+    fn update_players(&mut self, input: &ArcadeInput, audios: &Audios) {
+        let used_skins: Vec<usize> = self.players.iter().map(|x| x.skin_idx).collect();
         for (idx, player) in self.players.iter_mut().enumerate() {
             if self
                 .ballgame_area_blue
@@ -183,7 +184,7 @@ impl<'a> OverWorld {
             {
                 player.team = Team::Green;
             }
-            player.update_overworlder(input, idx);
+            player.update_overworlder(input, idx, audios, &used_skins);
         }
     }
 
@@ -225,7 +226,7 @@ impl<'a> OverWorld {
         canvas.draw_rect(self.jumpgame_area_green).unwrap();
 
         // - Timer anzeigen -
-        self.start_game_timer.draw(
+        self.start_game_timer.draw_as_rect(
             canvas,
             Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
             Color::GREEN,

@@ -45,12 +45,12 @@ pub struct JumpGame {
 }
 
 impl JumpGame {
-    pub fn new(player_in_game: Vec<Team>) -> Self {
+    pub fn new(player_in_game: Vec<(Team, usize)>) -> Self {
         let mut players = Vec::new();
 
-        for (i, team) in player_in_game.iter().enumerate() {
+        for (i, (team, skin_idx)) in player_in_game.iter().enumerate() {
             let start_pos = Vec2::new(16. + i as f32 * 16., JUMPGAME_GROUND_Y as f32);
-            let mut p = Player::new(start_pos, *team);
+            let mut p = Player::new(start_pos, *team, *skin_idx);
             p.state = PlayerState::Move;
             players.push(p);
         }
@@ -253,7 +253,7 @@ impl JumpGame {
         }
 
         // GameTime
-        self.game_timer.draw(
+        self.game_timer.draw_as_rect(
             canvas,
             Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
             Color::GREEN,
@@ -287,7 +287,7 @@ impl JumpGame {
                 // - Regeln Anzeigen -
                 canvas.copy(&textures.jumpgame_rules, None, None).unwrap();
                 // - Timer Anzeigen -
-                self.into_timer.draw(
+                self.into_timer.draw_as_rect(
                     canvas,
                     Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
                     Color::GREEN,
@@ -296,7 +296,7 @@ impl JumpGame {
             }
             GameState::Outro => {
                 // - Timer Anzeigen -
-                self.outro_timer.draw(
+                self.outro_timer.draw_as_rect(
                     canvas,
                     Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
                     Color::GREEN,
@@ -399,12 +399,15 @@ impl Obsticle {
         let (w, h) = (q.width, q.height);
 
         let dst = Rect::new(
-            self.pos.x as i32,
+            self.pos.x.round() as i32,
             self.pos.y as i32 - h.clamp(0, 64) as i32, // clamp ist unsauber - nur damit Store gut dargestellt wird
             w,
             h,
         );
-        canvas.copy(texture, None, dst).unwrap();
+        canvas
+            .copy_ex(texture, None, dst, 0., None, false, false)
+            .unwrap();
+        // canvas.copy(texture, None, dst).unwrap();
         if DEBUGMODE {
             canvas.set_draw_color(Color::MAGENTA);
             canvas

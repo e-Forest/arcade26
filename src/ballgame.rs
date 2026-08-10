@@ -48,7 +48,7 @@ pub struct BallGame {
 }
 
 impl BallGame {
-    pub fn new(player_in_game: Vec<Team>) -> Self {
+    pub fn new(player_in_game: Vec<(Team, usize)>) -> Self {
         let mut players = Vec::new();
 
         let mut start_positions_red = vec![Vec2::new(80., 150.), Vec2::new(100., 150.)];
@@ -75,13 +75,13 @@ impl BallGame {
                 - (BALL_RADIUS * 2.) as u32,
         );
 
-        for (_i, team) in player_in_game.iter().enumerate() {
+        for (_i, (team, skin_idx)) in player_in_game.iter().enumerate() {
             let start_pos = match team {
                 Team::Blue => start_positions_blue.remove(0),
                 Team::Red => start_positions_red.remove(0),
                 _ => Vec2::zero(),
             };
-            let mut p = Player::new(start_pos, *team);
+            let mut p = Player::new(start_pos, *team, *skin_idx);
             p.fliped = p.team == Team::Blue;
 
             p.state = PlayerState::Idle;
@@ -339,7 +339,7 @@ impl BallGame {
         }
 
         // GameTime
-        self.game_timer.draw(
+        self.game_timer.draw_as_rect(
             canvas,
             Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
             Color::GREEN,
@@ -353,7 +353,7 @@ impl BallGame {
                 canvas.copy(&textures.jumpgame_rules, None, None).unwrap();
 
                 // - Timer Anzeigen -
-                self.into_timer.draw(
+                self.into_timer.draw_as_rect(
                     canvas,
                     Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
                     Color::GREEN,
@@ -374,7 +374,7 @@ impl BallGame {
                 }
 
                 // - Timer Anzeigen -
-                self.nextround_timer.draw(
+                self.nextround_timer.draw_as_rect(
                     canvas,
                     Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
                     Color::GREEN,
@@ -383,7 +383,7 @@ impl BallGame {
             }
             GameState::Outro => {
                 // - Timer Anzeigen -
-                self.outro_timer.draw(
+                self.outro_timer.draw_as_rect(
                     canvas,
                     Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
                     Color::GREEN,

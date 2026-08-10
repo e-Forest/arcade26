@@ -38,7 +38,7 @@ impl Timer {
     pub fn remaning_time(&self) -> Duration {
         self.end.saturating_duration_since(Instant::now())
     }
-    pub fn draw(
+    pub fn draw_as_rect(
         &self,
         canvas: &mut WindowCanvas,
         rect: Rect,

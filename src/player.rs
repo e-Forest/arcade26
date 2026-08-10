@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 use gilrs::Button;
+use rand::random_range;
 use sdl2::{
     mixer::Channel,
     pixels::Color,
@@ -16,7 +17,7 @@ use crate::{
     FIGHTGAME_DASH_SPEED, FIGHTGAME_DASH_TIME, FIGHTGAME_PLAYER_SPEED, FIGHTGAME_STUNNING_TIME,
     GIVE_UP_TIME_MS, INPUT_AXIS_THRESHOLD, JUMP_MAX_HOLD, JUMPGAME_GROUND_Y,
     JUMPGAME_HIGHT_GRAVITY, JUMPGAME_JUMP_FORCE, JUMPGAME_LOW_GRAVITY, JUMPGAME_PLAYER_SPEED,
-    METER_RUN_SPEED, STAMINA_RELOAD_PER_FRAME, STUNNING_MOVE_FACTOR, Team, Textures,
+    METER_RUN_SPEED, SKIN_COUNT, STAMINA_RELOAD_PER_FRAME, STUNNING_MOVE_FACTOR, Team, Textures,
     VIRTUAL_HEIGHT, VIRTUAL_WIDHT,
     arcadeinput::ArcadeInput,
     aseprite::{AnchorPosition, AsePlayer},
@@ -49,10 +50,11 @@ pub struct Player {
     pub jump_start_time: Instant,
     pub is_upgiving: bool,
     pub give_up_timer: Timer,
+    pub skin_idx: usize,
 }
 
 impl Player {
-    pub fn new(pos: Vec2, team: Team) -> Self {
+    pub fn new(pos: Vec2, team: Team, skin_idx: usize) -> Self {
         let player = Player {
             pos,
             team,
@@ -77,10 +79,17 @@ impl Player {
             jump_start_time: Instant::now(),
             is_upgiving: false,
             give_up_timer: Timer::new(GIVE_UP_TIME_MS),
+            skin_idx,
         };
         player
     }
-    pub fn update_overworlder(&mut self, input: &ArcadeInput, gamepad_id: usize) {
+    pub fn update_overworlder(
+        &mut self,
+        input: &ArcadeInput,
+        gamepad_id: usize,
+        audios: &Audios,
+        used_skins: &[usize],
+    ) {
         let horizontal_movement = input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickX);
         let vertical_movement = -input.axis(PlayerId(gamepad_id), gilrs::Axis::LeftStickY);
         let input_move_direction = Vec2::new(horizontal_movement, vertical_movement).normalized();
@@ -99,10 +108,16 @@ impl Player {
                     self.state = PlayerState::Move;
                 }
 
-                // -> Shoot
-                if self.is_aiming == true && self.stamina >= 1. {
-                    self.state = PlayerState::Shoot;
+                // -> Dash
+                if input.just_button_pressed(PlayerId(gamepad_id), Button::South) {
+                    sfx_play(&audios.dash_sound);
+                    self.state = PlayerState::Dash;
                 }
+
+                // // -> Shoot
+                // if self.is_aiming == true && self.stamina >= 1. {
+                //     self.state = PlayerState::Shoot;
+                // }
             }
             PlayerState::Move => {
                 self.ase_player.play_tag("move", true);
@@ -120,6 +135,24 @@ impl Player {
 
                 // -> Idle
                 if self.velo.length() < INPUT_AXIS_THRESHOLD {
+                    self.state = PlayerState::Idle;
+                }
+            }
+            PlayerState::Dash => {
+                self.ase_player.play_tag("dash", true);
+
+                // -> idle
+                if self.ase_player.is_finished() {
+                    // change skin
+                    for _i in 0..10 {
+                        let new_skin = random_range(0..SKIN_COUNT);
+                        if used_skins.contains(&new_skin) {
+                            continue;
+                        }
+
+                        self.skin_idx = new_skin;
+                        break;
+                    }
                     self.state = PlayerState::Idle;
                 }
             }
@@ -577,7 +610,8 @@ impl Player {
         self.ase_player.draw_current_frame(
             canvas,
             self.pos,
-            &textures.player_skin[gamepad_id],
+            // &textures.player_skin[gamepad_id],
+            &textures.player_skin[self.skin_idx],
             AnchorPosition::BottomCenter,
             self.fliped,
         );

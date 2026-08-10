@@ -48,6 +48,8 @@ use player::*;
 pub const DEBUGMODE: bool = false;
 pub const FIXED_FPS: u32 = 60;
 
+pub const SKIN_COUNT: usize = 6;
+
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
 pub const VIRTUAL_HEIGHT: u32 = 180; // 1080/6
 
@@ -202,12 +204,8 @@ pub fn main() {
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
-    //     Team::Blue,
-    //     Team::Red,
     // ]));
     // let mut current_scene = Scene::FightGame(FightGame::new(vec![
-    //     Team::Blue,
-    //     Team::Red,
     //     Team::Blue,
     //     Team::Red,
     // ]));
@@ -223,18 +221,7 @@ pub fn main() {
         }
         input.update();
 
-        let mut is_shutdown = false;
-        for i in 0..4 {
-            if input.button_pressed(PlayerId(i), Button::Start) {
-                is_shutdown = true;
-            }
-        }
-        if !is_shutdown {
-            shutdown_timer.restart();
-        }
-        if shutdown_timer.is_over() {
-            shutdown();
-        }
+        handle_shutdown(&input, &mut shutdown_timer);
 
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
@@ -244,7 +231,7 @@ pub fn main() {
                 let scene_msg;
                 match &mut current_scene {
                     Scene::OverWorld(over_world) => {
-                        scene_msg = over_world.update(&input);
+                        scene_msg = over_world.update(&input, &audios);
                         over_world.draw(&mut tcnv, &textures);
                     }
                     Scene::BallGame(ball_game) => {
@@ -293,8 +280,8 @@ pub fn main() {
                 shutdown_timer.draw_as_pixels(
                     tcnv,
                     Rect::new(0, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT),
-                    10000,
-                    Color::MAGENTA,
+                    VIRTUAL_WIDHT as i32 * VIRTUAL_HEIGHT as i32,
+                    Color::BLACK,
                     0.8,
                 );
                 if DEBUGMODE {
@@ -309,6 +296,21 @@ pub fn main() {
     }
 }
 
+fn handle_shutdown(input: &ArcadeInput, shutdown_timer: &mut Timer) {
+    let mut is_shutdown = false;
+    for i in 0..4 {
+        if input.button_pressed(PlayerId(i), Button::Start) {
+            is_shutdown = true;
+        }
+    }
+    if !is_shutdown {
+        shutdown_timer.restart();
+    }
+    if shutdown_timer.is_over() {
+        shutdown();
+    }
+}
+
 fn draw_rendertarget_as_letterbox(canvas: &mut WindowCanvas, render_target: &Texture<'_>) {
     // letterbox
     if let Ok(display_size) = canvas.output_size() {
@@ -318,7 +320,17 @@ fn draw_rendertarget_as_letterbox(canvas: &mut WindowCanvas, render_target: &Tex
             display_size.0,
             display_size.1,
         );
-        canvas.copy(render_target, None, fitted_rect.rect).unwrap();
+        canvas
+            .copy_ex(
+                render_target,
+                None,
+                fitted_rect.rect,
+                0.,
+                None,
+                false,
+                false,
+            )
+            .unwrap();
     }
 }
 
@@ -493,6 +505,8 @@ impl<'a> Textures<'a> {
         player_skin.push(creator.load_texture("assets/player_skin1.png").unwrap());
         player_skin.push(creator.load_texture("assets/player_skin2.png").unwrap());
         player_skin.push(creator.load_texture("assets/player_skin3.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin4.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin5.png").unwrap());
 
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),

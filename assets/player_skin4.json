@@ -224,8 +224,9 @@
   ],
   "layers": [
    { "name": "body", "opacity": 255, "blendMode": "normal" },
-   { "name": "head", "opacity": 255, "blendMode": "normal" },
-   { "name": "hand", "opacity": 255, "blendMode": "normal" }
+   { "name": "kopf(lara)", "opacity": 255, "blendMode": "normal" },
+   { "name": "hand", "opacity": 255, "blendMode": "normal" },
+   { "name": "weapon", "opacity": 255, "blendMode": "normal" }
   ],
   "slices": [
   ]
