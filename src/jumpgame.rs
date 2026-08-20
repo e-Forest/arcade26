@@ -205,20 +205,22 @@ impl JumpGame {
     pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
         let paralax_widht = textures.jumpgame_paralax.query().width;
         let paralax_x = (self.meter / PARALAX_FACTOR as f32) as i32 % paralax_widht as i32;
-        let paralax_dst_1 = Rect::new(paralax_x, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT);
+        // let paralax_dst_1 = Rect::new(paralax_x, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT);
+        let paralax_dst_1 = Rect::new(paralax_x, 0, paralax_widht, VIRTUAL_HEIGHT);
         let paralax_dst_2 = Rect::new(
             paralax_x + paralax_widht as i32,
             0,
-            VIRTUAL_WIDHT,
+            paralax_widht,
             VIRTUAL_HEIGHT,
         );
         let background_widht = textures.jumpgame_background.query().width;
         let background_x = self.meter as i32 % background_widht as i32;
-        let background_dst_1 = Rect::new(background_x, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT);
+        // let background_dst_1 = Rect::new(background_x, 0, VIRTUAL_WIDHT, VIRTUAL_HEIGHT);
+        let background_dst_1 = Rect::new(background_x, 0, background_widht, VIRTUAL_HEIGHT);
         let background_dst_2 = Rect::new(
             background_x + background_widht as i32,
             0,
-            VIRTUAL_WIDHT,
+            background_widht,
             VIRTUAL_HEIGHT,
         );
         canvas

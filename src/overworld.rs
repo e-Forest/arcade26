@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use sdl2::{pixels::Color, rect::Rect, render::WindowCanvas};
 
 use crate::{
@@ -26,6 +28,7 @@ pub struct OverWorld {
     jumpgame_area_yellow: Rect,
     jumpgame_area_green: Rect,
     idle_timer: Timer,
+    chosen_scene: usize,
 }
 
 impl<'a> OverWorld {
@@ -36,6 +39,14 @@ impl<'a> OverWorld {
             p.fliped = true;
             players.push(p);
         }
+
+        // - start fightgame -
+        // players[0].pos = Vec2::new(80., 80.);
+        // players[1].pos = Vec2::new(80., 120.);
+
+        // - start ballgame -
+        // players[0].pos = Vec2::new(240., 120.);
+        // players[1].pos = Vec2::new(270., 120.);
 
         let ballgame_area = Rect::new(235, 105, 70, 35);
         let ballgame_devided_rect = devide_rect(ballgame_area, 1, 2);
@@ -58,6 +69,7 @@ impl<'a> OverWorld {
             fightgame_area_blue: fightgame_devided_rect[0],
             fightgame_area_red: fightgame_devided_rect[1],
             idle_timer: Timer::new(IDLE_TIME_TO_SCREENSAVE_MS),
+            chosen_scene: 0,
         }
     }
     pub fn update(&mut self, input: &ArcadeInput, audios: &Audios) -> SceneMessage {
@@ -102,18 +114,21 @@ impl<'a> OverWorld {
 
         if players_at_noplay <= 2 {
             if is_fair_temas_jumpgame && players_at_jumpgame + players_at_noplay == 4 {
+                self.chosen_scene = 3;
                 if self.start_game_timer.is_over() {
                     return SceneMessage::ChangeScene(Scene::JumpGame(JumpGame::new(
                         self.get_players_in_team(),
                     )));
                 }
             } else if is_ballgame_teams_ok && players_at_ballgame + players_at_noplay == 4 {
+                self.chosen_scene = 1;
                 if self.start_game_timer.is_over() {
                     return SceneMessage::ChangeScene(Scene::BallGame(BallGame::new(
                         self.get_players_in_team(),
                     )));
                 }
             } else if is_fightgame_teams_ok && players_at_fightgame + players_at_noplay == 4 {
+                self.chosen_scene = 2;
                 if self.start_game_timer.is_over() {
                     return SceneMessage::ChangeScene(Scene::FightGame(FightGame::new(
                         self.get_players_in_team(),
@@ -225,13 +240,41 @@ impl<'a> OverWorld {
         canvas.set_draw_color(Color::GREEN);
         canvas.draw_rect(self.jumpgame_area_green).unwrap();
 
-        // - Timer anzeigen -
-        self.start_game_timer.draw_as_rect(
-            canvas,
-            Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
-            Color::GREEN,
-            Color::RED,
-        );
+        // - Wenn Scenen-Wechsel-Timer läuft -
+        if self.start_game_timer.remaning_time()
+            < Duration::from_millis(START_GAME_TIME_MS as u64 - 100)
+        {
+            // - Timer anzeigen -
+            self.start_game_timer.draw_as_rect(
+                canvas,
+                Rect::new(0, VIRTUAL_HEIGHT as i32 - 3, VIRTUAL_WIDHT, 3),
+                Color::GREEN,
+                Color::RED,
+            );
+            // - Teaser anzeigen -
+            let teaser_texture = if self.chosen_scene == 1 {
+                &textures.ballgame_teaser
+            } else if self.chosen_scene == 2 {
+                &textures.fightgame_teaser
+            } else {
+                &textures.jumpgame_teaser
+            };
+
+            let q = teaser_texture.query();
+            let (w, h) = (q.width, q.height);
+            canvas
+                .copy(
+                    teaser_texture,
+                    None,
+                    Rect::new(
+                        (VIRTUAL_WIDHT - w) as i32 / 2,
+                        (VIRTUAL_HEIGHT - h) as i32 / 2,
+                        w,
+                        h,
+                    ),
+                )
+                .unwrap();
+        }
 
         warn_idle_timer(&self.idle_timer, canvas);
 

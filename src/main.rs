@@ -167,7 +167,7 @@ pub fn main() {
 
     let mut canvas = window
         .into_canvas()
-        // .accelerated()
+        .accelerated()
         // .present_vsync()
         .build()
         .unwrap();
@@ -196,11 +196,15 @@ pub fn main() {
 
     let audios = Audios::new();
     let mut textures = Textures::new(&creator);
+    // textures.fightgame_teaser.set_alpha_mod(200);
+    // textures.jumpgame_teaser.set_alpha_mod(200);
+    // textures.ballgame_teaser.set_alpha_mod(200);
 
     // - START SCENE -
     let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
-    // let mut current_scene = Scene::JumpGame(JumpGame::new(vec![Team::Yellow, Team::Green]));
+    // let mut current_scene =
+    //     Scene::JumpGame(JumpGame::new(vec![(Team::Yellow, 5), (Team::Green, 2)]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
@@ -496,6 +500,9 @@ pub struct Textures<'a> {
     pub store: Texture<'a>,
     pub ball: Texture<'a>,
     pub no_winner: Texture<'a>,
+    pub fightgame_teaser: Texture<'a>,
+    pub ballgame_teaser: Texture<'a>,
+    pub jumpgame_teaser: Texture<'a>,
 }
 
 impl<'a> Textures<'a> {
@@ -510,6 +517,15 @@ impl<'a> Textures<'a> {
 
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            fightgame_teaser: creator
+                .load_texture("assets/final/fightgame_teaser.png")
+                .unwrap(),
+            ballgame_teaser: creator
+                .load_texture("assets/final/ballgame_teaser.png")
+                .unwrap(),
+            jumpgame_teaser: creator
+                .load_texture("assets/final/jumpgame_teaser.png")
+                .unwrap(),
             logo: creator.load_texture("assets/logo.png").unwrap(),
             flag_white: creator.load_texture("assets/flag_white.png").unwrap(),
             flag_blue: creator.load_texture("assets/flag_blue.png").unwrap(),
@@ -537,14 +553,16 @@ impl<'a> Textures<'a> {
                 .load_texture("assets/overworld_background.png")
                 .unwrap(),
             jumpgame_background: creator
-                .load_texture("assets/jumpgame_background.png")
+                .load_texture("assets/final/jumpgame_background.png")
                 .unwrap(),
-            jumpgame_paralax: creator.load_texture("assets/jumpgame_paralax.png").unwrap(),
+            jumpgame_paralax: creator
+                .load_texture("assets/final/jumpgame_paralax.png")
+                .unwrap(),
             fightgame_background: creator
-                .load_texture("assets/fightgame_background.png")
+                .load_texture("assets/final/fightgame_background.png")
                 .unwrap(),
             ballgame_background: creator
-                .load_texture("assets/ballgame_background.png")
+                .load_texture("assets/final/ballgame_background.png")
                 .unwrap(),
             arrow: creator.load_texture("assets/arrow.png").unwrap(),
             platsch: creator.load_texture("assets/platsch.png").unwrap(),
