@@ -48,7 +48,7 @@ impl<'a> OverWorld {
         // players[0].pos = Vec2::new(240., 120.);
         // players[1].pos = Vec2::new(270., 120.);
 
-        let ballgame_area = Rect::new(140, 80, 60, 30);
+        let ballgame_area = Rect::new(140, 95, 60, 25);
         let ballgame_devided_rect = devide_rect(ballgame_area, 1, 2);
         let fightgame_area = Rect::new(225, 118, 35, 60);
         let fightgame_devided_rect = devide_rect(fightgame_area, 2, 1);
@@ -203,7 +203,7 @@ impl<'a> OverWorld {
         }
     }
 
-    pub fn draw(&self, canvas: &mut WindowCanvas, textures: &Textures) {
+    pub fn draw(&self, canvas: &mut WindowCanvas, textures: &mut Textures) {
         let background_tx = &textures.overworld_background;
         canvas.set_draw_color(Color::WHITE);
         canvas.clear();
@@ -253,15 +253,23 @@ impl<'a> OverWorld {
             );
 
             // - Ausgewählten Teaser anzeigen -
-            let mut teaser_x = 10;
+            // let mut teaser_x = 10;
+            let teaser_x = (VIRTUAL_WIDHT - 128) / 2;
             let teaser_texture = if self.chosen_scene == 1 {
-                &textures.ballgame_teaser
+                &mut textures.ballgame_teaser
             } else if self.chosen_scene == 2 {
-                &textures.fightgame_teaser
+                &mut textures.fightgame_teaser
             } else {
-                teaser_x = VIRTUAL_WIDHT - 10 - 128;
-                &textures.jumpgame_teaser
+                // teaser_x = VIRTUAL_WIDHT - 10 - 128;
+                &mut textures.jumpgame_teaser
             };
+
+            let alpha = 1.
+                - (1. / (self.start_game_timer.wait_time().as_millis()) as f32
+                    * (self.start_game_timer.remaning_time().as_millis()) as f32);
+            // let alpha = 2. / (self.start_game_timer.wait_time().as_millis() / 2) as f32
+            //     * (self.start_game_timer.remaning_time().as_millis() / 2) as f32;
+            teaser_texture.set_alpha_mod(((alpha) * 510.).clamp(0., 255.) as u8);
 
             let q = teaser_texture.query();
             let (w, h) = (q.width, q.height);

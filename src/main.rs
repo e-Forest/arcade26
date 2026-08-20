@@ -236,7 +236,7 @@ pub fn main() {
                 match &mut current_scene {
                     Scene::OverWorld(over_world) => {
                         scene_msg = over_world.update(&input, &audios);
-                        over_world.draw(&mut tcnv, &textures);
+                        over_world.draw(&mut tcnv, &mut textures);
                     }
                     Scene::BallGame(ball_game) => {
                         scene_msg = ball_game.update(&input, &audios);
