@@ -201,8 +201,8 @@ pub fn main() {
     // textures.ballgame_teaser.set_alpha_mod(200);
 
     // - START SCENE -
-    let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
-    // let mut current_scene = Scene::OverWorld(OverWorld::new());
+    // let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
+    let mut current_scene = Scene::OverWorld(OverWorld::new());
     // let mut current_scene =
     //     Scene::JumpGame(JumpGame::new(vec![(Team::Yellow, 5), (Team::Green, 2)]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
@@ -503,6 +503,7 @@ pub struct Textures<'a> {
     pub fightgame_teaser: Texture<'a>,
     pub ballgame_teaser: Texture<'a>,
     pub jumpgame_teaser: Texture<'a>,
+    pub overworld_teasers: Texture<'a>,
 }
 
 impl<'a> Textures<'a> {
@@ -517,6 +518,9 @@ impl<'a> Textures<'a> {
 
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
+            overworld_teasers: creator
+                .load_texture("assets/final/overworld_teasers.png")
+                .unwrap(),
             fightgame_teaser: creator
                 .load_texture("assets/final/fightgame_teaser.png")
                 .unwrap(),
@@ -550,7 +554,7 @@ impl<'a> Textures<'a> {
             // player: creator.load_texture("assets/player.png").unwrap(),
             player_skin,
             overworld_background: creator
-                .load_texture("assets/overworld_background.png")
+                .load_texture("assets/final/overworld_background.png")
                 .unwrap(),
             jumpgame_background: creator
                 .load_texture("assets/final/jumpgame_background.png")

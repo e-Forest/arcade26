@@ -158,8 +158,8 @@ impl Player {
             }
             _ => (),
         }
-        self.pos.x = self.pos.x.clamp(0., VIRTUAL_WIDHT as f32);
-        self.pos.y = self.pos.y.clamp(0., VIRTUAL_HEIGHT as f32);
+        self.pos.x = self.pos.x.clamp(50., 260 as f32);
+        self.pos.y = self.pos.y.clamp(80., VIRTUAL_HEIGHT as f32);
     }
 
     pub fn update_fighter(

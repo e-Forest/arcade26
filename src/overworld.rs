@@ -35,7 +35,7 @@ impl<'a> OverWorld {
     pub fn new() -> Self {
         let mut players = Vec::new();
         for i in 0..4 {
-            let mut p = Player::new(Vec2::new(230. + (1. + i as f32) * 16., 80.), Team::None, i);
+            let mut p = Player::new(Vec2::new(135. + (1. + i as f32) * 16., 148.), Team::None, i);
             p.fliped = true;
             players.push(p);
         }
@@ -48,17 +48,17 @@ impl<'a> OverWorld {
         // players[0].pos = Vec2::new(240., 120.);
         // players[1].pos = Vec2::new(270., 120.);
 
-        let ballgame_area = Rect::new(235, 105, 70, 35);
+        let ballgame_area = Rect::new(140, 80, 60, 30);
         let ballgame_devided_rect = devide_rect(ballgame_area, 1, 2);
-        let fightgame_area = Rect::new(55, 55, 35, 70);
+        let fightgame_area = Rect::new(225, 118, 35, 60);
         let fightgame_devided_rect = devide_rect(fightgame_area, 2, 1);
-        let jumpgame_area = Rect::new(130, 55, 80, 60);
-        let jumpgame_devided_rect = devide_rect(Rect::new(130, 55, 80, 60), 2, 2);
+        let jumpgame_area = Rect::new(50, 118, 70, 60);
+        let jumpgame_devided_rect = devide_rect(jumpgame_area, 2, 2);
 
         Self {
             players,
             start_game_timer: Timer::new(START_GAME_TIME_MS),
-            noplay_area: Rect::new(230, 55, 80, 40),
+            noplay_area: Rect::new(133, 125, 80, 40),
             jumpgame_area,
             jumpgame_area_red: jumpgame_devided_rect[0],
             jumpgame_area_blue: jumpgame_devided_rect[1],
@@ -251,7 +251,8 @@ impl<'a> OverWorld {
                 Color::GREEN,
                 Color::RED,
             );
-            // - Teaser anzeigen -
+
+            // - Ausgewählten Teaser anzeigen -
             let teaser_texture = if self.chosen_scene == 1 {
                 &textures.ballgame_teaser
             } else if self.chosen_scene == 2 {
@@ -267,12 +268,18 @@ impl<'a> OverWorld {
                     teaser_texture,
                     None,
                     Rect::new(
-                        (VIRTUAL_WIDHT - w) as i32 / 2,
-                        (VIRTUAL_HEIGHT - h) as i32 / 2,
-                        w,
-                        h,
+                        10, 10,
+                        // (VIRTUAL_WIDHT - w) as i32 / 2,
+                        // (VIRTUAL_HEIGHT - h) as i32 / 2,
+                        w, h,
                     ),
                 )
+                .unwrap();
+        }
+        // - Alle Teaser anzeigen -
+        else {
+            canvas
+                .copy(&textures.overworld_teasers, None, None)
                 .unwrap();
         }
 
