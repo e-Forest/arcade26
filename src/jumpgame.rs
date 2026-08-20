@@ -385,7 +385,7 @@ impl Obsticle {
         let collision_box = match obsticle_enum {
             ObsticleEnum::Crate => Rect::new(0, 0 - 16, 16, 16),
             ObsticleEnum::StackOfCrates => Rect::new(0 + 8, 0 - 32, 16, 32),
-            ObsticleEnum::MarketCart => Rect::new(0 + 4, 0 - 12, 24, 12),
+            ObsticleEnum::MarketCart => Rect::new(0 + 4, 0 - 24, 24, 24),
             ObsticleEnum::Store => Rect::new(0 + 8, 0 - 64, 48 - 8, 16),
         };
         Self {
