@@ -201,8 +201,8 @@ pub fn main() {
     // textures.ballgame_teaser.set_alpha_mod(200);
 
     // - START SCENE -
-    // let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
-    let mut current_scene = Scene::OverWorld(OverWorld::new());
+    let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
+    // let mut current_scene = Scene::OverWorld(OverWorld::new());
     // let mut current_scene =
     //     Scene::JumpGame(JumpGame::new(vec![(Team::Yellow, 5), (Team::Green, 2)]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
