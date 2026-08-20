@@ -215,26 +215,11 @@ impl Player {
                 }
             }
             PlayerState::Move => {
-                self.ase_player.play_tag("move", true);
-
-                // Stamina
-                self.stamina_reload(0.6);
-
-                // Flip
-                if self.velo.x > INPUT_AXIS_THRESHOLD {
-                    self.fliped = false;
-                } else if self.velo.x < -INPUT_AXIS_THRESHOLD {
-                    self.fliped = true;
-                }
-
-                // Velo
-                self.pos_old = self.pos;
-                self.pos = self.pos + self.velo;
-
                 // -> Stunned
                 if self.stunned_end_time >= Instant::now() {
                     sfx_play(&audios.stunned_sound);
                     self.state = PlayerState::Stunned;
+                    self.velo = Vec2::zero();
                 }
 
                 // -> Dash
@@ -260,6 +245,22 @@ impl Player {
                 if self.velo.length() < INPUT_AXIS_THRESHOLD {
                     self.state = PlayerState::Idle;
                 }
+
+                self.ase_player.play_tag("move", true);
+
+                // Stamina
+                self.stamina_reload(0.6);
+
+                // Flip
+                if self.velo.x > INPUT_AXIS_THRESHOLD {
+                    self.fliped = false;
+                } else if self.velo.x < -INPUT_AXIS_THRESHOLD {
+                    self.fliped = true;
+                }
+
+                // Velo
+                self.pos_old = self.pos;
+                self.pos = self.pos + self.velo;
             }
             PlayerState::Shoot => {
                 self.ase_player.play_tag("shoot", true);

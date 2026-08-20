@@ -114,7 +114,6 @@ impl FightGame {
                 }
             }
             GameState::InGame => {
-                self.update_players(input, audios);
                 self.update_arrows(audios);
                 self.update_platsches();
                 self.update_particles();
@@ -122,6 +121,7 @@ impl FightGame {
                 self.handle_players_to_dashingplayers();
                 self.handle_players_to_groundboxes(audios);
                 self.handle_players_to_scorearea(delta_ms);
+                self.update_players(input, audios);
                 // let p = Particle::new(
                 //     Vec2::from_point(self.score_area.center()),
                 //     Color::WHITE,
@@ -275,6 +275,7 @@ impl FightGame {
         }
         for (player_idx, stunning_velo) in player_stunnings {
             if let Some(player) = self.players.get_mut(player_idx) {
+                player.pos = player.pos + stunning_velo;
                 player.stunned_end_time =
                     Instant::now() + Duration::from_millis(FIGHTGAME_STUNNING_TIME);
                 player.stunning_velo = stunning_velo;
@@ -283,7 +284,7 @@ impl FightGame {
         for player_idx in player_stop_dashing {
             if let Some(player) = self.players.get_mut(player_idx) {
                 player.dash_end_time =
-                    Instant::now() - Duration::from_millis(FIGHTGAME_DASHTIME_AFTER_HIT_MS);
+                    Instant::now() + Duration::from_millis(FIGHTGAME_DASHTIME_AFTER_HIT_MS);
             }
         }
     }

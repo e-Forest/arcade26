@@ -164,6 +164,7 @@ impl BallGame {
                         p.pos = p.start_pos;
                         p.velo = Vec2::zero();
                         p.fliped = p.team == Team::Blue;
+                        p.state = PlayerState::Idle;
                     }
 
                     self.ball.pos = self.ball.start_pos;
@@ -288,34 +289,48 @@ impl BallGame {
                 self.ball.play_bounce = true;
                 // self.ball.last_collision = Instant::now();
 
+                // - Ball soll vom Player bouncen -
+                let dir = player_center.direction(&ball_center);
+                self.ball.velo = dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
+
                 // - Ball soll die geschwindigkeit des Players übernehmen -
                 let (bx, by) = (self.ball.pos.x, self.ball.pos.y);
                 let (px, py) = (player.pos.x, player.pos.y);
                 let (pvx, pvy) = (player.velo.x, player.velo.y);
+                let (bvx, bvy) = (self.ball.velo.x, self.ball.velo.y);
+
                 if bx < px {
                     if pvx < 0. {
-                        self.ball.velo.x = pvx;
+                        // if bvx > pvx {
+                        self.ball.velo.x = self.ball.velo.x + pvx;
                     }
                 }
                 if bx > px {
                     if pvx > 0. {
-                        self.ball.velo.x = pvx;
+                        // if bvx < pvx {
+                        self.ball.velo.x = self.ball.velo.x + pvx;
                     }
                 }
                 if by > py {
+                    // if bvy < pvy {
                     if pvy > 0. {
-                        self.ball.velo.y = pvy;
+                        self.ball.velo.y = self.ball.velo.y + pvy;
                     }
                 }
                 if by < py {
                     if pvy < 0. {
-                        self.ball.velo.y = pvy;
+                        // if bvy > pvy {
+                        self.ball.velo.y = self.ball.velo.y + pvy;
                     }
                 }
 
                 // - Ball soll vom Player bouncen -
-                let dir = player_center.direction(&ball_center);
-                self.ball.velo = self.ball.velo + dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
+                // let dir = player_center.direction(&ball_center);
+                // if player.velo == Vec2::zero() {
+                //     self.ball.velo = dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
+                // } else {
+                //     self.ball.velo = self.ball.velo + dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
+                // }
                 // if player.velo.y < 0. {
                 //     self.ball.velo =
                 //         self.ball.velo + player.velo * BALLGAME_PLAYER2BALL_VELO_FACTOR;

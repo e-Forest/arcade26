@@ -129,6 +129,7 @@ pub const BALLGAME_BALL_GRAVITY_HIGH: f32 = 0.18;
 pub const BALLGAME_BALL_XBRAKE: f32 = 0.016;
 pub const BALLGAME_BALL_GROUND_BOUCE_FORCE: f32 = 3.;
 pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 0.8; //2.;
+
 pub const BALLGAME_BALL_WALL_BOUCE_FORCE: f32 = 1.;
 pub const BALLGAME_WALL_X: f32 = 36.;
 pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = 22.; // BALLGAME_WALL_X - 4.;
@@ -206,10 +207,7 @@ pub fn main() {
     // let mut current_scene =
     //     Scene::JumpGame(JumpGame::new(vec![(Team::Yellow, 5), (Team::Green, 2)]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![(Team::Blue, 1), (Team::Red, 0)]));
-    // let mut current_scene = Scene::FightGame(FightGame::new(vec![
-    //     Team::Blue,
-    //     Team::Red,
-    // ]));
+    // let mut current_scene = Scene::FightGame(FightGame::new(vec![(Team::Blue, 1), (Team::Red, 2)]));
 
     let mut fps_guard = FpsGuard::new(FIXED_FPS);
     let mut shutdown_timer = Timer::new(3000);
