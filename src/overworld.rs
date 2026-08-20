@@ -253,11 +253,13 @@ impl<'a> OverWorld {
             );
 
             // - Ausgewählten Teaser anzeigen -
+            let mut teaser_x = 10;
             let teaser_texture = if self.chosen_scene == 1 {
                 &textures.ballgame_teaser
             } else if self.chosen_scene == 2 {
                 &textures.fightgame_teaser
             } else {
+                teaser_x = VIRTUAL_WIDHT - 10 - 128;
                 &textures.jumpgame_teaser
             };
 
@@ -268,10 +270,12 @@ impl<'a> OverWorld {
                     teaser_texture,
                     None,
                     Rect::new(
-                        10, 10,
+                        teaser_x as i32,
+                        10,
                         // (VIRTUAL_WIDHT - w) as i32 / 2,
                         // (VIRTUAL_HEIGHT - h) as i32 / 2,
-                        w, h,
+                        w,
+                        h,
                     ),
                 )
                 .unwrap();
