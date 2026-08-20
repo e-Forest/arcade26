@@ -320,6 +320,7 @@ impl FightGame {
         // }
         for (player_idx, stunning_velo) in player_stunnings {
             if let Some(player) = self.players.get_mut(player_idx) {
+                player.pos = player.pos + stunning_velo;
                 player.stunned_end_time =
                     Instant::now() + Duration::from_millis(FIGHTGAME_STUNNING_TIME);
                 player.stunning_velo = stunning_velo;
