@@ -51,10 +51,10 @@ impl BallGame {
     pub fn new(player_in_game: Vec<(Team, usize)>) -> Self {
         let mut players = Vec::new();
 
-        let mut start_positions_red = vec![Vec2::new(80., 150.), Vec2::new(100., 150.)];
+        let mut start_positions_red = vec![Vec2::new(50., 150.), Vec2::new(60., 150.)];
         let mut start_positions_blue = vec![
-            Vec2::new(VIRTUAL_WIDHT as f32 - 80., 150.),
-            Vec2::new(VIRTUAL_WIDHT as f32 - 100., 150.),
+            Vec2::new(VIRTUAL_WIDHT as f32 - 50., 150.),
+            Vec2::new(VIRTUAL_WIDHT as f32 - 60., 150.),
         ];
 
         let ring_area_red = Rect::new(
@@ -287,12 +287,39 @@ impl BallGame {
             if player_center.distance(&ball_center) < BALL_RADIUS + (PLAYER_SIZE / 2.) {
                 self.ball.play_bounce = true;
                 // self.ball.last_collision = Instant::now();
-                let dir = player_center.direction(&ball_center);
-                self.ball.velo = dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
-                if player.velo.y < 0. {
-                    self.ball.velo =
-                        self.ball.velo + player.velo * BALLGAME_PLAYER2BALL_VELO_FACTOR;
+
+                // - Ball soll die geschwindigkeit des Players übernehmen -
+                let (bx, by) = (self.ball.pos.x, self.ball.pos.y);
+                let (px, py) = (player.pos.x, player.pos.y);
+                let (pvx, pvy) = (player.velo.x, player.velo.y);
+                if bx < px {
+                    if pvx < 0. {
+                        self.ball.velo.x = pvx;
+                    }
                 }
+                if bx > px {
+                    if pvx > 0. {
+                        self.ball.velo.x = pvx;
+                    }
+                }
+                if by > py {
+                    if pvy > 0. {
+                        self.ball.velo.y = pvy;
+                    }
+                }
+                if by < py {
+                    if pvy < 0. {
+                        self.ball.velo.y = pvy;
+                    }
+                }
+
+                // - Ball soll vom Player bouncen -
+                let dir = player_center.direction(&ball_center);
+                self.ball.velo = self.ball.velo + dir * BALLGAME_BALL_PLAYER_BOUCE_FORCE;
+                // if player.velo.y < 0. {
+                //     self.ball.velo =
+                //         self.ball.velo + player.velo * BALLGAME_PLAYER2BALL_VELO_FACTOR;
+                // }
             }
         }
     }

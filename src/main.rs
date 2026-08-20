@@ -128,7 +128,7 @@ pub const BALLGAME_BALL_Y_LIMIT_FOR_APPLY_HIGH_GRAVITY: f32 = 30.;
 pub const BALLGAME_BALL_GRAVITY_HIGH: f32 = 0.18;
 pub const BALLGAME_BALL_XBRAKE: f32 = 0.016;
 pub const BALLGAME_BALL_GROUND_BOUCE_FORCE: f32 = 3.;
-pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 2.;
+pub const BALLGAME_BALL_PLAYER_BOUCE_FORCE: f32 = 0.8; //2.;
 pub const BALLGAME_BALL_WALL_BOUCE_FORCE: f32 = 1.;
 pub const BALLGAME_WALL_X: f32 = 36.;
 pub const BALLGAME_BALL_X_DISTANCE_TO_SCORE: f32 = 22.; // BALLGAME_WALL_X - 4.;
@@ -138,7 +138,7 @@ pub const BALLGAME_TIME_BETWEEN_BALLBOUNCE_SOUNDS: u32 = 200;
 pub const BALLGAME_RING_UPPER_EDGE: f32 = 20.;
 pub const BALLGAME_RING_LOWER_EDGE: f32 = 73.;
 
-pub const BALLGAME_PLAYER2BALL_VELO_FACTOR: f32 = 0.8;
+pub const BALLGAME_PLAYER2BALL_VELO_FACTOR: f32 = 1.; //0.8;
 
 pub const BALLGAME_DASH_TIME: u64 = 100;
 pub const BALLGAME_DASH_SPEED: f32 = 3.8;
@@ -205,10 +205,7 @@ pub fn main() {
     // let mut current_scene = Scene::OverWorld(OverWorld::new());
     // let mut current_scene =
     //     Scene::JumpGame(JumpGame::new(vec![(Team::Yellow, 5), (Team::Green, 2)]));
-    // let mut current_scene = Scene::BallGame(BallGame::new(vec![
-    //     Team::Blue,
-    //     Team::Red,
-    // ]));
+    // let mut current_scene = Scene::BallGame(BallGame::new(vec![(Team::Blue, 1), (Team::Red, 0)]));
     // let mut current_scene = Scene::FightGame(FightGame::new(vec![
     //     Team::Blue,
     //     Team::Red,
