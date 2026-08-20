@@ -209,20 +209,6 @@ impl<'a> OverWorld {
         canvas.clear();
         canvas.copy(background_tx, None, None).unwrap();
 
-        // - Player anzeigen (y-ordered) -
-        let mut player_y_ordered = Vec::new();
-
-        for (idx, player) in self.players.iter().enumerate() {
-            player_y_ordered.push((idx, player.pos.y as i32));
-        }
-
-        player_y_ordered.sort_by(|(_a_idx, a_y), (_b_idx, b_y)| a_y.cmp(b_y));
-        for (idx, _y) in player_y_ordered {
-            if let Some(player) = self.players.get(idx) {
-                player.draw(canvas, textures, None, idx)
-            }
-        }
-
         // - Areas anzeigen -
         canvas.set_draw_color(Color::WHITE);
         canvas.draw_rect(self.jumpgame_area).unwrap();
@@ -239,6 +225,20 @@ impl<'a> OverWorld {
         canvas.draw_rect(self.jumpgame_area_yellow).unwrap();
         canvas.set_draw_color(Color::GREEN);
         canvas.draw_rect(self.jumpgame_area_green).unwrap();
+
+        // - Player anzeigen (y-ordered) -
+        let mut player_y_ordered = Vec::new();
+
+        for (idx, player) in self.players.iter().enumerate() {
+            player_y_ordered.push((idx, player.pos.y as i32));
+        }
+
+        player_y_ordered.sort_by(|(_a_idx, a_y), (_b_idx, b_y)| a_y.cmp(b_y));
+        for (idx, _y) in player_y_ordered {
+            if let Some(player) = self.players.get(idx) {
+                player.draw(canvas, textures, None, idx)
+            }
+        }
 
         // - Wenn Scenen-Wechsel-Timer läuft -
         if self.start_game_timer.remaning_time()

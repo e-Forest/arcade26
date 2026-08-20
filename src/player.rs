@@ -354,7 +354,12 @@ impl Player {
 
         match self.state {
             PlayerState::Move => {
-                self.ase_player.play_tag("move", true);
+                // self.ase_player.play_tag("move", true);
+                if self.is_jumping {
+                    self.ase_player.play_tag("jump", true);
+                } else {
+                    self.ase_player.play_tag("move", true);
+                }
 
                 self.velo.x = lerp(
                     self.velo.x,
@@ -365,9 +370,11 @@ impl Player {
 
                 // -> Jump
                 let is_grounded = self.pos.y >= JUMPGAME_GROUND_Y as f32;
+
                 if is_grounded {
                     self.is_jumping = false;
                 }
+
                 let is_input_jump = input.button_pressed(PlayerId(gamepad_id), Button::South);
 
                 if is_input_jump && is_grounded {

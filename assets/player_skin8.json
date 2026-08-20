@@ -1,6 +1,6 @@
 { "frames": [
    {
-    "filename": "player_skin1 0.aseprite",
+    "filename": "player_skin8 0.aseprite",
     "frame": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -9,7 +9,7 @@
     "duration": 500
    },
    {
-    "filename": "player_skin1 1.aseprite",
+    "filename": "player_skin8 1.aseprite",
     "frame": { "x": 16, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -18,7 +18,7 @@
     "duration": 500
    },
    {
-    "filename": "player_skin1 2.aseprite",
+    "filename": "player_skin8 2.aseprite",
     "frame": { "x": 32, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -27,7 +27,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 3.aseprite",
+    "filename": "player_skin8 3.aseprite",
     "frame": { "x": 48, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -36,7 +36,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 4.aseprite",
+    "filename": "player_skin8 4.aseprite",
     "frame": { "x": 64, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -45,7 +45,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 5.aseprite",
+    "filename": "player_skin8 5.aseprite",
     "frame": { "x": 80, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -54,7 +54,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 6.aseprite",
+    "filename": "player_skin8 6.aseprite",
     "frame": { "x": 96, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -63,7 +63,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 7.aseprite",
+    "filename": "player_skin8 7.aseprite",
     "frame": { "x": 112, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -72,7 +72,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 8.aseprite",
+    "filename": "player_skin8 8.aseprite",
     "frame": { "x": 128, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -81,7 +81,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 9.aseprite",
+    "filename": "player_skin8 9.aseprite",
     "frame": { "x": 144, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -90,7 +90,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 10.aseprite",
+    "filename": "player_skin8 10.aseprite",
     "frame": { "x": 160, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -99,7 +99,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 11.aseprite",
+    "filename": "player_skin8 11.aseprite",
     "frame": { "x": 176, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -108,7 +108,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 12.aseprite",
+    "filename": "player_skin8 12.aseprite",
     "frame": { "x": 192, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -117,7 +117,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 13.aseprite",
+    "filename": "player_skin8 13.aseprite",
     "frame": { "x": 208, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -126,7 +126,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 14.aseprite",
+    "filename": "player_skin8 14.aseprite",
     "frame": { "x": 224, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -135,7 +135,7 @@
     "duration": 100
    },
    {
-    "filename": "player_skin1 15.aseprite",
+    "filename": "player_skin8 15.aseprite",
     "frame": { "x": 240, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -144,7 +144,7 @@
     "duration": 50
    },
    {
-    "filename": "player_skin1 16.aseprite",
+    "filename": "player_skin8 16.aseprite",
     "frame": { "x": 256, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -153,7 +153,7 @@
     "duration": 50
    },
    {
-    "filename": "player_skin1 17.aseprite",
+    "filename": "player_skin8 17.aseprite",
     "frame": { "x": 272, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -162,7 +162,7 @@
     "duration": 50
    },
    {
-    "filename": "player_skin1 18.aseprite",
+    "filename": "player_skin8 18.aseprite",
     "frame": { "x": 288, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -171,7 +171,7 @@
     "duration": 50
    },
    {
-    "filename": "player_skin1 19.aseprite",
+    "filename": "player_skin8 19.aseprite",
     "frame": { "x": 304, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -180,7 +180,7 @@
     "duration": 50
    },
    {
-    "filename": "player_skin1 20.aseprite",
+    "filename": "player_skin8 20.aseprite",
     "frame": { "x": 320, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -189,7 +189,7 @@
     "duration": 50
    },
    {
-    "filename": "player_skin1 21.aseprite",
+    "filename": "player_skin8 21.aseprite",
     "frame": { "x": 336, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -198,7 +198,7 @@
     "duration": 50
    },
    {
-    "filename": "player_skin1 22.aseprite",
+    "filename": "player_skin8 22.aseprite",
     "frame": { "x": 352, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
@@ -210,7 +210,7 @@
  "meta": {
   "app": "https://www.aseprite.org/",
   "version": "1.3.17-x64",
-  "image": "player_skin1.png",
+  "image": "player_skin8.png",
   "format": "RGBA8888",
   "size": { "w": 368, "h": 16 },
   "scale": "1",
@@ -224,7 +224,7 @@
   ],
   "layers": [
    { "name": "body", "opacity": 255, "blendMode": "normal" },
-   { "name": "kopf(lara)", "opacity": 255, "blendMode": "normal" },
+   { "name": "kopf(lara) Copy", "opacity": 255, "blendMode": "normal" },
    { "name": "hand", "opacity": 255, "blendMode": "normal" },
    { "name": "weapon", "opacity": 255, "blendMode": "normal" }
   ],

@@ -48,7 +48,7 @@ use player::*;
 pub const DEBUGMODE: bool = false;
 pub const FIXED_FPS: u32 = 60;
 
-pub const SKIN_COUNT: usize = 6;
+pub const SKIN_COUNT: usize = 9;
 
 pub const VIRTUAL_WIDHT: u32 = 320; // 1920/6
 pub const VIRTUAL_HEIGHT: u32 = 180; // 1080/6
@@ -201,8 +201,8 @@ pub fn main() {
     // textures.ballgame_teaser.set_alpha_mod(200);
 
     // - START SCENE -
-    let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
-    // let mut current_scene = Scene::OverWorld(OverWorld::new());
+    // let mut current_scene = Scene::ScreenSaver(ScreenSaver::new());
+    let mut current_scene = Scene::OverWorld(OverWorld::new());
     // let mut current_scene =
     //     Scene::JumpGame(JumpGame::new(vec![(Team::Yellow, 5), (Team::Green, 2)]));
     // let mut current_scene = Scene::BallGame(BallGame::new(vec![
@@ -515,6 +515,9 @@ impl<'a> Textures<'a> {
         player_skin.push(creator.load_texture("assets/player_skin3.png").unwrap());
         player_skin.push(creator.load_texture("assets/player_skin4.png").unwrap());
         player_skin.push(creator.load_texture("assets/player_skin5.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin6.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin7.png").unwrap());
+        player_skin.push(creator.load_texture("assets/player_skin8.png").unwrap());
 
         Self {
             // xxx: creator.load_texture("assets/xxx.png").unwrap(),
