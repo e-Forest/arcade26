@@ -108,7 +108,7 @@ pub const JUMP_MAX_HOLD: Duration = Duration::from_millis(200);
 
 pub const SCORE_MAX: u32 = JUMPGAME_TIME_MS / (1000 / FIXED_FPS) * VIRTUAL_WIDHT; // gemessen: 2.360.000
 
-pub const PARALAX_FACTOR: i32 = 5;
+pub const PARALAX_FACTOR: i32 = 3;
 pub const METER_RUN_SPEED: f32 = 2.; // * 60.;
 
 // - Ballgame -
